@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+/*
+ * Bilim Arena Race design tokens.
+ * Light educational palette: calm surfaces, purple/turquoise accents,
+ * bright colours reserved for game moments (tokens, checkpoints, finish).
+ */
+@theme {
+  --color-canvas: #f7f8fc;
+  --color-surface: #ffffff;
+  --color-line: #e4e7f0;
+
+  --color-ink: #202b46;
+  --color-ink-muted: #5a6480;
+
+  --color-brand: #635bff;
+  --color-brand-strong: #4c44db; /* hover, and text on brand-soft */
+  --color-brand-soft: #eeedff;
+
+  --color-teal: #21b8a6; /* decorative only: too light for text on white */
+  --color-teal-strong: #0e7a6d; /* teal text */
+  --color-teal-soft: #e3f7f4;
+
+  --color-sun: #ffb020;
+  --color-sun-soft: #fff4dc;
+  --color-coral: #ff6b6b;
+
+  --shadow-card: 0 1px 2px rgb(32 43 70 / 0.05), 0 10px 30px -12px rgb(32 43 70 / 0.12);
+  --shadow-lift: 0 2px 4px rgb(32 43 70 / 0.06), 0 18px 40px -16px rgb(32 43 70 / 0.22);
+  --shadow-brand: 0 10px 24px -10px rgb(99 91 255 / 0.65);
+
+  --radius-card: 1.5rem;
+}
+
+@theme inline {
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-unbounded), var(--font-manrope), ui-sans-serif, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+::selection {
+  background-color: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 3px;
+}
+
+/*
+ * Race map preview: team tokens hop between checkpoints like on a game board,
+ * reach the finish, fade out and start a new lap. Points match STOPS in
+ * components/race-map-preview.tsx (SVG user units). Duration/delay are set
+ * per token inline; without animation the token rests at its SVG transform.
+ */
+@keyframes race-lap {
+  0%, 8% { transform: translate(64px, 292px); opacity: 1; }
+  16%, 24% { transform: translate(150px, 232px); opacity: 1; }
+  32%, 40% { transform: translate(238px, 256px); opacity: 1; }
+  48%, 56% { transform: translate(318px, 178px); opacity: 1; }
+  64%, 72% { transform: translate(258px, 104px); opacity: 1; }
+  80%, 90% { transform: translate(340px, 58px); opacity: 1; }
+  95% { transform: translate(340px, 58px); opacity: 0; }
+  96% { transform: translate(64px, 292px); opacity: 0; }
+  100% { transform: translate(64px, 292px); opacity: 1; }
+}
+
+@keyframes race-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0; transform: scale(1.9); }
+}
+
+.race-token {
+  animation-name: race-lap;
+  animation-timing-function: cubic-bezier(0.5, 0, 0.3, 1.35);
+  animation-iteration-count: infinite;
+}
+
+.race-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: race-pulse 2.4s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,59 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Next.js build output and cache
+/.next/
+/out/
+/build
+*.tsbuildinfo
+next-env.d.ts
+
+# Testing
+/coverage
+
+# Environment files: real values never go to Git.
+# Only the template .env.example is committed.
+.env
+.env.*
+!.env.example
+
+# Vercel
+.vercel
+
+# Supabase CLI local state (also covered by supabase/.gitignore)
+supabase/.branches
+supabase/.temp
+
+# Keys and certificates
+*.pem
+*.key
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.log
+
+# IDE and editor files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+
+# Local AI-assistant tooling
+.claude/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
