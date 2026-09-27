@@ -1,28 +1,27 @@
 import type { Metadata } from "next";
-import { NoticeCard } from "@/components/notice-card";
+import { SetupRequired } from "@/components/setup-required";
+import { isSupabaseConfigured } from "@/lib/env";
+import { JoinForm } from "./join-form";
 
 export const metadata: Metadata = {
   title: "Подключиться к гонке",
 };
 
-export default function JoinRacePage() {
+export default async function JoinRacePage({ searchParams }: PageProps<"/join">) {
+  if (!isSupabaseConfigured()) return <SetupRequired />;
+
+  const { code } = await searchParams;
+
   return (
-    <NoticeCard
-      badge="Скоро"
-      title="Подключение к гонке"
-      description="Здесь студенты смогут ввести код комнаты, выбрать команду и присоединиться к гонке со своего устройства."
-      icon={
-        <svg viewBox="0 0 24 24" aria-hidden="true" className="size-8">
-          <path
-            d="M10 17l5-5-5-5M15 12H3M14 3h4a3 3 0 013 3v12a3 3 0 01-3 3h-4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      }
-    />
+    <main className="mx-auto flex w-full max-w-md flex-1 items-start px-4 pt-4 pb-16 sm:items-center sm:pt-10">
+      <div className="w-full rounded-card bg-surface p-6 shadow-card ring-1 ring-line sm:p-10">
+        <p className="text-sm font-bold text-teal-strong">Для студентов</p>
+        <h1 className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">Подключиться к гонке</h1>
+        <p className="mt-3 text-ink-muted">Регистрация не нужна: введите код комнаты и своё имя.</p>
+        <div className="mt-8">
+          <JoinForm initialCode={typeof code === "string" ? code : ""} />
+        </div>
+      </div>
+    </main>
   );
 }

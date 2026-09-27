@@ -1,0 +1,53 @@
+"use server";
+
+import type { ActionResult } from "@/lib/actions";
+import { SETUP_REQUIRED_MESSAGE } from "@/lib/actions";
+import { isSupabaseConfigured } from "@/lib/env";
+import { authErrorMessage, raceErrorCode, raceErrorMessage } from "@/lib/race/errors";
+import { validateDisplayName, validateRoomCode } from "@/lib/race/validation";
+import { createClient } from "@/lib/supabase/server";
+
+type JoinField = "code" | "name";
+
+const CODE_ERRORS = new Set(["race_not_found", "race_finished", "race_not_open", "race_full"]);
+const NAME_ERRORS = new Set(["display_name_taken", "invalid_display_name"]);
+
+/**
+ * Student join: ensure an (anonymous) session, then let join_race() validate
+ * the code and create the seat. The browser never writes the participant row.
+ */
+export async function joinRaceAction(formData: FormData): Promise<ActionResult<JoinField>> {
+  if (!isSupabaseConfigured()) return { ok: false, message: SETUP_REQUIRED_MESSAGE };
+
+  const code = validateRoomCode(String(formData.get("code") ?? ""));
+  const name = validateDisplayName(String(formData.get("name") ?? ""));
+  if (!code.ok || !name.ok) {
+    return {
+      ok: false,
+      fieldErrors: { code: code.ok ? undefined : code.error, name: name.ok ? undefined : name.error },
+    };
+  }
+
+  const supabase = await createClient();
+  const { data: session } = await supabase.auth.getClaims();
+  if (!session?.claims) {
+    // A returning student keeps the same anonymous user (cookie), so a reload
+    // or a retry after a typo never creates a second participant.
+    const { error } = await supabase.auth.signInAnonymously();
+    if (error) return { ok: false, message: authErrorMessage(error) };
+  }
+
+  const { data: raceId, error } = await supabase.rpc("join_race", {
+    p_code: code.value,
+    p_display_name: name.value,
+  });
+  if (error || typeof raceId !== "string") {
+    const errorCode = raceErrorCode(error);
+    const message = raceErrorMessage(error);
+    if (errorCode && CODE_ERRORS.has(errorCode)) return { ok: false, fieldErrors: { code: message } };
+    if (errorCode && NAME_ERRORS.has(errorCode)) return { ok: false, fieldErrors: { name: message } };
+    return { ok: false, message };
+  }
+
+  return { ok: true, redirectTo: `/race/${raceId}/lobby` };
+}

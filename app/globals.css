@@ -25,6 +25,9 @@
   --color-sun-soft: #fff4dc;
   --color-coral: #ff6b6b;
 
+  --color-danger: #c22b43; /* error text: 5.6:1 on white, 4.9:1 on danger-soft */
+  --color-danger-soft: #fdecee;
+
   --shadow-card: 0 1px 2px rgb(32 43 70 / 0.05), 0 10px 30px -12px rgb(32 43 70 / 0.12);
   --shadow-lift: 0 2px 4px rgb(32 43 70 / 0.06), 0 18px 40px -16px rgb(32 43 70 / 0.22);
   --shadow-brand: 0 10px 24px -10px rgb(99 91 255 / 0.65);
@@ -89,6 +92,25 @@ body {
   transform-box: fill-box;
   transform-origin: center;
   animation: race-pulse 2.4s ease-out infinite;
+}
+
+/* Lobby: new people and teams slide in, the waiting label breathes. */
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes waiting-dot {
+  0%, 80%, 100% { opacity: 0.25; }
+  40% { opacity: 1; }
+}
+
+.waiting-dot {
+  animation: waiting-dot 1.4s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

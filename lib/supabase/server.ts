@@ -25,8 +25,8 @@ export async function createClient() {
             cookieStore.set(name, value, options);
           }
         } catch {
-          // Server Components can't write cookies. Safe to ignore once a
-          // proxy refreshes the auth session (added together with auth).
+          // Server Components can't write cookies. Safe to ignore: proxy.ts
+          // refreshes the auth session before pages render.
         }
       },
     },
