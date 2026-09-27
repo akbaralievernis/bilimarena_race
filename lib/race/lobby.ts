@@ -18,17 +18,27 @@ export type LobbyViewer = {
   teamId: string | null;
 };
 
-export type LobbyTeam = { id: string; name: string; memberCount: number };
+/** position of the point the team stands on: 0 = START, last = FINISH. */
+export type LobbyTeam = { id: string; name: string; memberCount: number; position: number };
 
 export type LobbyParticipant = { id: string; displayName: string; teamId: string | null };
+
+export type RoutePointType = "start" | "checkpoint" | "finish";
+
+/** One point of the race route, ordered by position (0 = START, last = FINISH). */
+export type RoutePoint = { position: number; title: string; type: RoutePointType };
 
 export type LobbySnapshot = {
   race: LobbyRace;
   viewer: LobbyViewer;
+  route: RoutePoint[];
   teams: LobbyTeam[];
   participants: LobbyParticipant[];
   studentCount: number;
 };
+
+const ROUTE_POINT_TYPES: readonly string[] = ["start", "checkpoint", "finish"];
+const isPosition = (value: unknown): value is number => Number.isInteger(value) && (value as number) >= 0;
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -42,7 +52,7 @@ export function parseLobby(data: unknown): LobbySnapshot {
   if (!isObject(data) || !isObject(data.race) || !isObject(data.viewer)) {
     throw new Error("invalid_lobby_payload");
   }
-  const { race, viewer, teams, participants, studentCount } = data;
+  const { race, viewer, route, teams, participants, studentCount } = data;
 
   if (
     !isString(race.id) ||
@@ -56,6 +66,7 @@ export function parseLobby(data: unknown): LobbySnapshot {
     !isNullableString(viewer.participantId) ||
     !isNullableString(viewer.displayName) ||
     !isNullableString(viewer.teamId) ||
+    !Array.isArray(route) ||
     !Array.isArray(teams) ||
     !Array.isArray(participants) ||
     typeof studentCount !== "number"
@@ -63,11 +74,30 @@ export function parseLobby(data: unknown): LobbySnapshot {
     throw new Error("invalid_lobby_payload");
   }
 
-  const parsedTeams = teams.map((team): LobbyTeam => {
-    if (!isObject(team) || !isString(team.id) || !isString(team.name) || typeof team.memberCount !== "number") {
+  const parsedRoute = route.map((point, index): RoutePoint => {
+    if (
+      !isObject(point) ||
+      point.position !== index ||
+      !isString(point.title) ||
+      !isString(point.type) ||
+      !ROUTE_POINT_TYPES.includes(point.type)
+    ) {
       throw new Error("invalid_lobby_payload");
     }
-    return { id: team.id, name: team.name, memberCount: team.memberCount };
+    return { position: index, title: point.title, type: point.type as RoutePointType };
+  });
+
+  const parsedTeams = teams.map((team): LobbyTeam => {
+    if (
+      !isObject(team) ||
+      !isString(team.id) ||
+      !isString(team.name) ||
+      typeof team.memberCount !== "number" ||
+      !isPosition(team.position)
+    ) {
+      throw new Error("invalid_lobby_payload");
+    }
+    return { id: team.id, name: team.name, memberCount: team.memberCount, position: team.position };
   });
 
   const parsedParticipants = participants.map((participant): LobbyParticipant => {
@@ -98,6 +128,7 @@ export function parseLobby(data: unknown): LobbySnapshot {
       displayName: viewer.displayName,
       teamId: viewer.teamId,
     },
+    route: parsedRoute,
     teams: parsedTeams,
     participants: parsedParticipants,
     studentCount,

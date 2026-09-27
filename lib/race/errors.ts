@@ -35,6 +35,11 @@ const RACE_ERROR_MESSAGES = {
   participant_not_found: "Участник не найден. Обновите страницу.",
   cannot_assign_teacher: "Учителя нельзя добавить в команду.",
   invalid_status_transition: "Это действие недоступно при текущем статусе гонки.",
+  invalid_route: "Маршрут должен содержать от 1 до 20 чекпоинтов.",
+  invalid_checkpoint_title: "Название чекпоинта — от 1 до 60 символов.",
+  race_not_started: "Гонка ещё не началась.",
+  invalid_move: "Позиция команды уже изменилась — карта обновлена.",
+  team_finished: "Команда уже на финише.",
 } as const;
 
 export type RaceErrorCode = keyof typeof RACE_ERROR_MESSAGES;

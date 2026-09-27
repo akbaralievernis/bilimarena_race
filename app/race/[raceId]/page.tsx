@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { LobbyScreen } from "@/components/lobby/lobby-screen";
+import { RaceScreen } from "@/components/race/race-screen";
 import { RaceUnavailable } from "@/components/race/race-unavailable";
 import { SetupRequired } from "@/components/setup-required";
 import { loadRace } from "@/lib/race/load-race";
 import { isUuid } from "@/lib/race/validation";
 
 export const metadata: Metadata = {
-  title: "Лобби гонки",
+  title: "Карта гонки",
 };
 
-export default async function LobbyPage({ params }: PageProps<"/race/[raceId]/lobby">) {
+export default async function RacePage({ params }: PageProps<"/race/[raceId]">) {
   const { raceId } = await params;
   if (!isUuid(raceId)) notFound();
 
@@ -21,7 +21,7 @@ export default async function LobbyPage({ params }: PageProps<"/race/[raceId]/lo
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-2 pb-16 sm:px-6 lg:px-8 lg:pt-4">
-      <LobbyScreen key={raceId} initial={result.lobby} />
+      <RaceScreen key={raceId} initial={result.lobby} />
     </main>
   );
 }

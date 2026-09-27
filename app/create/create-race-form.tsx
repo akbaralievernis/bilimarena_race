@@ -7,15 +7,23 @@ import { Button } from "@/components/ui/button";
 import { TextAreaField, TextField } from "@/components/ui/field";
 import { LIMITS } from "@/lib/race/validation";
 import { createRaceAction } from "./actions";
+import { RouteEditor, type RouteDraftItem } from "./route-editor";
+
+const INITIAL_ROUTE: RouteDraftItem[] = [
+  { id: "checkpoint-0", title: "" },
+  { id: "checkpoint-1", title: "" },
+  { id: "checkpoint-2", title: "" },
+];
 
 export function CreateRaceForm() {
   const [state, formAction, pending] = useFormAction(createRaceAction);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [route, setRoute] = useState(INITIAL_ROUTE);
   const locked = pending || (state.status === "success" && state.redirecting);
 
   return (
-    <form action={formAction} className="space-y-5" noValidate>
+    <form action={formAction} className="space-y-6" noValidate>
       <TextField
         id="race-title"
         name="title"
@@ -38,6 +46,13 @@ export function CreateRaceForm() {
         value={description}
         onChange={(event) => setDescription(event.target.value)}
         error={fieldError(state, "description")}
+        disabled={locked}
+      />
+      <RouteEditor
+        items={route}
+        onChange={setRoute}
+        itemError={(index) => fieldError(state, `checkpoint-${index}`)}
+        error={fieldError(state, "route")}
         disabled={locked}
       />
       {state.status === "error" && state.message && <Alert>{state.message}</Alert>}

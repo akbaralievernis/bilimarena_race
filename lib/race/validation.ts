@@ -12,6 +12,8 @@ export const LIMITS = {
   raceTitle: { min: 3, max: 80 },
   raceDescription: { max: 500 },
   teamName: { min: 1, max: 40 },
+  checkpointTitle: { min: 1, max: 60 },
+  route: { min: 1, max: 20 },
 } as const;
 
 const ROOM_CODE_PATTERN = new RegExp(`^[${ROOM_CODE_ALPHABET}]{${ROOM_CODE_LENGTH}}$`);
@@ -97,6 +99,33 @@ export function validateTeamName(input: string): Validation {
   if (length(value) < min) return { ok: false, error: "Введите название команды." };
   if (length(value) > max) return { ok: false, error: `Название команды — максимум ${max} символов.` };
   return { ok: true, value };
+}
+
+export function validateCheckpointTitle(input: string): Validation {
+  const value = cleanText(input);
+  const { min, max } = LIMITS.checkpointTitle;
+  if (length(value) < min) return { ok: false, error: "Введите название чекпоинта." };
+  if (length(value) > max) return { ok: false, error: `Название чекпоинта — максимум ${max} символов.` };
+  return { ok: true, value };
+}
+
+export type RouteValidation =
+  | { ok: true; value: string[] }
+  | { ok: false; error?: string; itemErrors: Record<number, string> };
+
+/** Checkpoint titles in route order. Positions are assigned by the database. */
+export function validateRoute(titles: string[]): RouteValidation {
+  const { min, max } = LIMITS.route;
+  if (titles.length < min) return { ok: false, error: "Добавьте хотя бы один чекпоинт.", itemErrors: {} };
+  if (titles.length > max) return { ok: false, error: `Максимум ${max} чекпоинтов.`, itemErrors: {} };
+
+  const itemErrors: Record<number, string> = {};
+  const value = titles.map((title, index) => {
+    const checked = validateCheckpointTitle(title);
+    if (!checked.ok) itemErrors[index] = checked.error;
+    return checked.ok ? checked.value : "";
+  });
+  return Object.keys(itemErrors).length > 0 ? { ok: false, itemErrors } : { ok: true, value };
 }
 
 export function isUuid(value: string): boolean {

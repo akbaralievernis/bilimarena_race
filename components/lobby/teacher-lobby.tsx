@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { finishRaceAction, startRaceAction } from "@/app/race/[raceId]/lobby/actions";
-import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { canTransition, type RaceStatus } from "@/lib/race/status";
+import { RouteStrip } from "@/components/race/route-strip";
+import { ButtonLink } from "@/components/ui/button-link";
 import type { LobbySnapshot } from "@/lib/race/lobby";
+import type { RaceStatus } from "@/lib/race/status";
 import { ConnectionBanner, ConnectionPill } from "./connection-status";
 import { ParticipantsPanel } from "./participants-panel";
+import { RaceStatusControl } from "./race-status-control";
 import { RoomCode } from "./room-code";
 import { StatusBadge } from "./status-badge";
 import { TeamsPanel } from "./teams-panel";
@@ -17,16 +16,9 @@ import { useActionRunner } from "./use-action-runner";
 const STATUS_HINTS: Record<RaceStatus, string> = {
   draft: "Гонка ещё не открыта для подключения.",
   lobby: "Когда все подключатся и команды будут готовы — начинайте гонку.",
-  running: "Гонка идёт. Карта и задания появятся на следующем этапе разработки.",
+  running: "Гонка идёт — положение команд видно на карте гонки.",
   finished: "Гонка завершена. Изменения больше недоступны.",
 };
-
-type StatusAction = { to: "running" | "finished"; label: string; confirm: string; pendingLabel: string };
-
-const STATUS_ACTIONS: StatusAction[] = [
-  { to: "running", label: "Начать гонку", confirm: "Начать? Вернуться в лобби будет нельзя.", pendingLabel: "Запуск…" },
-  { to: "finished", label: "Завершить гонку", confirm: "Завершить гонку для всех?", pendingLabel: "Завершение…" },
-];
 
 export function TeacherLobby({
   lobby,
@@ -38,22 +30,9 @@ export function TeacherLobby({
   refresh: () => Promise<void>;
 }) {
   const runner = useActionRunner(refresh);
-  const [confirming, setConfirming] = useState<StatusAction["to"] | null>(null);
   const { race } = lobby;
   const locked = race.status === "finished";
   const unassigned = lobby.participants.filter((participant) => !participant.teamId).length;
-
-  // "Start" is the main action in the lobby; "finish" is offered once running.
-  const action = STATUS_ACTIONS.find(
-    (candidate) => canTransition(race.status, candidate.to) && (race.status !== "lobby" || candidate.to === "running"),
-  );
-
-  async function changeStatus(target: StatusAction) {
-    const ok = await runner.run("status", () =>
-      target.to === "running" ? startRaceAction(race.id) : finishRaceAction(race.id),
-    );
-    if (ok) setConfirming(null);
-  }
 
   return (
     <div className="space-y-6">
@@ -86,46 +65,23 @@ export function TeacherLobby({
           <RoomCode code={race.code} />
         </div>
 
-        <div className="mt-6 flex flex-col gap-4 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-ink-muted">{STATUS_HINTS[race.status]}</p>
-          {action &&
-            (confirming === action.to ? (
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <span className="text-sm font-bold">{action.confirm}</span>
-                <div className="flex gap-2">
-                  <Button
-                    className="flex-1 sm:flex-none"
-                    variant={action.to === "running" ? "primary" : "secondary"}
-                    pending={runner.isPending("status")}
-                    pendingLabel={action.pendingLabel}
-                    onClick={() => changeStatus(action)}
-                  >
-                    Да
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="flex-1 sm:flex-none"
-                    disabled={runner.isPending("status")}
-                    onClick={() => setConfirming(null)}
-                  >
-                    Отмена
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Button
-                variant={action.to === "running" ? "primary" : "secondary"}
-                className="w-full sm:w-auto"
-                onClick={() => {
-                  runner.clearError("status");
-                  setConfirming(action.to);
-                }}
-              >
-                {action.label}
-              </Button>
-            ))}
+        <div className="mt-6 border-t border-line pt-6">
+          <RaceStatusControl race={race} runner={runner} hint={STATUS_HINTS[race.status]} />
         </div>
-        {runner.errorFor("status") && <Alert className="mt-4">{runner.errorFor("status")}</Alert>}
+      </section>
+
+      <section aria-labelledby="route-heading" className="rounded-card bg-surface p-5 shadow-card ring-1 ring-line sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 id="route-heading" className="font-display text-lg font-bold tracking-tight">
+            Маршрут
+          </h2>
+          <ButtonLink href={`/race/${race.id}`} variant="secondary" size="sm">
+            Карта гонки
+          </ButtonLink>
+        </div>
+        <div className="mt-4">
+          <RouteStrip route={lobby.route} />
+        </div>
       </section>
 
       {/* grid-cols-1 = minmax(0, 1fr): truncated names must not widen the column. */}

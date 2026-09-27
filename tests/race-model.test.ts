@@ -87,7 +87,13 @@ describe("parseLobby", () => {
       finishedAt: null,
     },
     viewer: { role: "student", participantId: "p1", displayName: "Эрнис", teamId: null },
-    teams: [{ id: "t1", name: "Альфа", memberCount: 0 }],
+    // Stage 2: get_lobby() also returns the route and every team position.
+    route: [
+      { position: 0, title: "Старт", type: "start" },
+      { position: 1, title: "Дроби", type: "checkpoint" },
+      { position: 2, title: "Финиш", type: "finish" },
+    ],
+    teams: [{ id: "t1", name: "Альфа", memberCount: 0, position: 0 }],
     participants: [{ id: "p1", displayName: "Эрнис", teamId: null }],
     studentCount: 1,
   };
@@ -106,6 +112,18 @@ describe("parseLobby", () => {
     expect(() => parseLobby({ ...valid, race: { ...valid.race, status: "paused" } })).toThrow();
     expect(() => parseLobby({ ...valid, viewer: { ...valid.viewer, role: "admin" } })).toThrow();
     expect(() => parseLobby({ ...valid, teams: [{ id: 1 }] })).toThrow();
+  });
+
+  it("rejects a route out of order or with unknown point types", () => {
+    const [start, checkpoint, finish] = valid.route;
+    expect(() => parseLobby({ ...valid, route: [start, finish, checkpoint] })).toThrow("invalid_lobby_payload");
+    expect(() => parseLobby({ ...valid, route: [start, { ...checkpoint, type: "bonus" }, finish] })).toThrow();
+    expect(() => parseLobby({ ...valid, route: undefined })).toThrow();
+  });
+
+  it("rejects negative or fractional team positions", () => {
+    expect(() => parseLobby({ ...valid, teams: [{ ...valid.teams[0], position: -1 }] })).toThrow();
+    expect(() => parseLobby({ ...valid, teams: [{ ...valid.teams[0], position: 1.5 }] })).toThrow();
   });
 });
 

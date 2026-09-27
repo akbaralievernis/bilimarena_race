@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { cleanUp, expectLobbySignal, isConfigured, listen, rpc, rpcError, signInStudent, signInTeacher } from "./support";
 
 /*
  * End-to-end checks against a real Supabase project with the migrations
@@ -19,122 +20,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
  *     returns no session anyway.
  *   * Students: 3 anonymous users per run, created once in beforeAll.
  * Isolation comes from a fresh race per run. Auth errors are reported, never
- * retried — a rate limit means "wait", not "try harder".
+ * retried — a rate limit means "wait", not "try harder". Helpers: ./support.ts.
  */
-
-const env = {
-  url: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  key: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-  teacherEmail: process.env.TEST_TEACHER_EMAIL?.trim(),
-  teacherPassword: process.env.TEST_TEACHER_PASSWORD,
-};
 
 const RUN_ID = randomUUID().slice(0, 8);
 
-const AUTH_HINTS: Record<string, string> = {
-  invalid_credentials: "TEST_TEACHER_EMAIL / TEST_TEACHER_PASSWORD не подходят — проверьте .env.test.local.",
-  email_not_confirmed:
-    "тестовый учитель не подтверждён — создайте его через Dashboard → Authentication → Add user с «Auto Confirm User».",
-  anonymous_provider_disabled: "включите Authentication → Sign In / Providers → Anonymous Sign-Ins.",
-  over_request_rate_limit:
-    "сработал rate limit Supabase Auth (вход / анонимный вход по IP). Подождите и запустите снова — тесты не повторяют запросы.",
-};
-
-function authFailure(step: string, error: { code?: string; message: string }) {
-  const hint = (error.code && AUTH_HINTS[error.code]) || error.message;
-  return new Error(`${step}: ${hint} [${error.code ?? "no code"}]`);
-}
-
-function newClient() {
-  return createClient(env.url!, env.key!, { auth: { persistSession: false, autoRefreshToken: false } });
-}
-
-async function signInTeacher() {
-  if (!env.teacherEmail || !env.teacherPassword) {
-    throw new Error(
-      "Нет TEST_TEACHER_EMAIL / TEST_TEACHER_PASSWORD. Создайте .env.test.local по образцу .env.test.example.",
-    );
-  }
-  const client = newClient();
-  const { data, error } = await client.auth.signInWithPassword({
-    email: env.teacherEmail,
-    password: env.teacherPassword,
-  });
-  if (error) throw authFailure("Вход тестового учителя", error);
-  if (data.user.is_anonymous) throw new Error("Тестовый учитель не должен быть анонимным пользователем.");
-  return client;
-}
-
-async function signInStudent() {
-  const client = newClient();
-  const { error } = await client.auth.signInAnonymously();
-  if (error) throw authFailure("Анонимный вход студента", error);
-  return client;
-}
-
-async function rpc<T>(client: SupabaseClient, fn: string, args: Record<string, unknown> = {}) {
-  const { data, error } = await client.rpc(fn, args);
-  if (error) throw error;
-  return data as T;
-}
-
-async function rpcError(client: SupabaseClient, fn: string, args: Record<string, unknown>) {
-  const { error } = await client.rpc(fn, args);
-  return error?.message ?? null;
-}
-
-/**
- * Our triggers send only { table, op }. Supabase Realtime adds its own message
- * `id` to database broadcasts; nothing else may travel, and that id must not be
- * one of our row ids (no domain data over the socket).
- */
-function expectLobbySignal(received: unknown, expected: { table: string; op: string }, domainIds: string[]) {
-  expect(received).toMatchObject(expected);
-  const signal = received as Record<string, unknown>;
-  expect(Object.keys(signal).filter((key) => !["table", "op", "id"].includes(key))).toEqual([]);
-  if (signal.id !== undefined) expect(domainIds).not.toContain(signal.id);
-}
-
-/** Subscribes to the private race channel and exposes a "wait for next event" helper. */
-async function listen(client: SupabaseClient, raceId: string) {
-  await client.realtime.setAuth();
-  const events: unknown[] = [];
-  let onEvent: (() => void) | null = null;
-
-  const channel = client
-    .channel(`race:${raceId}`, { config: { private: true } })
-    .on("broadcast", { event: "lobby_changed" }, (message) => {
-      events.push(message.payload);
-      onEvent?.();
-    });
-
-  const status = await new Promise<string>((resolve) => {
-    const timer = setTimeout(() => resolve("TIMEOUT"), 10_000);
-    channel.subscribe((next) => {
-      if (next === "CLOSED") return;
-      clearTimeout(timer);
-      resolve(next);
-    });
-  });
-
-  /** Call before triggering the change; resolves with the payload or null. */
-  function nextEvent(timeoutMs = 10_000) {
-    const seen = events.length;
-    return new Promise<unknown>((resolve) => {
-      const timer = setTimeout(() => resolve(null), timeoutMs);
-      onEvent = () => {
-        if (events.length > seen) {
-          clearTimeout(timer);
-          resolve(events[events.length - 1]);
-        }
-      };
-    });
-  }
-
-  return { channel, status, nextEvent };
-}
-
-describe.skipIf(!env.url || !env.key)("Supabase integration: rooms, teams, lobby", () => {
+describe.skipIf(!isConfigured)("Supabase integration: rooms, teams, lobby", () => {
   let teacher: SupabaseClient | undefined;
   let student: SupabaseClient;
   let classmate: SupabaseClient;
@@ -163,21 +54,9 @@ describe.skipIf(!env.url || !env.key)("Supabase integration: rooms, teams, lobby
     expect(lobby.race.status).toBe("lobby");
   });
 
-  afterAll(async () => {
-    // The teacher account is reused across runs: close this run's race even if
-    // a test failed midway, so open races never pile up (limit: 50 per teacher).
-    if (teacher && raceId) {
-      const { error } = await teacher.rpc("finish_race", { p_race_id: raceId });
-      if (error && error.message !== "invalid_status_transition") {
-        console.warn(`Не удалось завершить тестовую гонку ${raceId}: ${error.message}`);
-      }
-    }
-    for (const client of clients) {
-      await client.removeAllChannels();
-      // Local scope: do not end the teacher's other sessions (e.g. in a browser).
-      await client.auth.signOut({ scope: "local" });
-    }
-  });
+  // The teacher account is reused across runs: close this run's race even if
+  // a test failed midway, so open races never pile up (limit: 50 per teacher).
+  afterAll(() => cleanUp(teacher, raceId, clients));
 
   it("a student joins by code (any case) and re-joining does not duplicate", async () => {
     expect(await rpc(student, "join_race", { p_code: code.toLowerCase(), p_display_name: "Эрнис" })).toBe(raceId);

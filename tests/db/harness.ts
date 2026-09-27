@@ -18,17 +18,28 @@ type Params = unknown[];
 /**
  * A fresh Postgres (PGlite) with the Supabase shim and every migration from
  * supabase/migrations applied in order — the same SQL that runs in production.
+ *
+ * `until` stops after the migration whose file name starts with that prefix,
+ * so a test can seed data and then `applyPendingMigrations()` — exactly what
+ * `supabase db push` does to a project that already has data.
  */
-export async function createTestDb() {
+export async function createTestDb(options: { until?: string } = {}) {
   const db = new PGlite();
   await db.exec(readFileSync(join(import.meta.dirname, "supabase-shim.sql"), "utf8"));
 
   const migrations = readdirSync(migrationsDir)
     .filter((file) => file.endsWith(".sql"))
     .sort();
-  for (const file of migrations) {
-    await db.exec(readFileSync(join(migrationsDir, file), "utf8"));
+  const cut = options.until ? migrations.findIndex((file) => file.startsWith(options.until!)) + 1 : migrations.length;
+  if (cut === 0) throw new Error(`No migration starts with ${options.until}`);
+  let applied = 0;
+
+  async function applyPendingMigrations(limit = migrations.length) {
+    for (; applied < limit; applied++) {
+      await db.exec(readFileSync(join(migrationsDir, migrations[applied]), "utf8"));
+    }
   }
+  await applyPendingMigrations(cut);
 
   async function asRole<T>(
     role: "anon" | "authenticated",
@@ -58,6 +69,9 @@ export async function createTestDb() {
 
   return {
     db,
+
+    /** Applies the migrations skipped by `until`. */
+    applyPendingMigrations: () => applyPendingMigrations(),
 
     /** Creates an auth user (as Supabase Auth would). */
     async createUser(options: { anonymous?: boolean; displayName?: string } = {}): Promise<TestUser> {

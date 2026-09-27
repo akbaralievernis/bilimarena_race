@@ -1,3 +1,5 @@
+import { RouteStrip } from "@/components/race/route-strip";
+import { ButtonLink } from "@/components/ui/button-link";
 import { teamColor, type LobbySnapshot } from "@/lib/race/lobby";
 import { formatRoomCode } from "@/lib/race/validation";
 import { ConnectionBanner, ConnectionPill } from "./connection-status";
@@ -74,11 +76,20 @@ export function StudentLobby({ lobby, connection }: { lobby: LobbySnapshot; conn
           )}
         </div>
 
+        <div className="mt-6">
+          <p className="text-sm font-semibold text-ink-muted">Маршрут:</p>
+          <div className="mt-2">
+            <RouteStrip route={lobby.route} />
+          </div>
+        </div>
+
         <div className="mt-8 text-center" role="status">
           {race.status === "running" ? (
             <>
               <p className="font-display text-xl font-bold text-teal-strong">Гонка началась!</p>
-              <p className="mt-1 text-sm text-ink-muted">Карта и задания появятся на следующем этапе разработки.</p>
+              <ButtonLink href={`/race/${race.id}`} className="mt-4 w-full sm:w-auto">
+                Открыть карту гонки
+              </ButtonLink>
             </>
           ) : race.status === "finished" ? (
             <p className="font-display text-xl font-bold">Гонка завершена. Спасибо за участие!</p>

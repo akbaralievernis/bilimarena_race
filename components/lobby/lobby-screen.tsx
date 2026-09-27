@@ -1,6 +1,8 @@
 "use client";
 
-import { ButtonLink } from "@/components/ui/button-link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
+import { AccessLost } from "@/components/race/access-lost";
 import type { LobbySnapshot } from "@/lib/race/lobby";
 import { LobbyNotices } from "./lobby-notices";
 import { StudentLobby } from "./student-lobby";
@@ -9,18 +11,18 @@ import { useLobby } from "./use-lobby";
 
 export function LobbyScreen({ initial }: { initial: LobbySnapshot }) {
   const { lobby, connection, accessLost, notices, dismissNotice, refresh } = useLobby(initial);
+  const router = useRouter();
+  const previousStatus = useRef(initial.race.status);
 
-  if (accessLost) {
-    return (
-      <div className="mx-auto max-w-xl rounded-card bg-surface p-8 text-center shadow-card ring-1 ring-line">
-        <h1 className="font-display text-2xl font-bold">Гонка недоступна</h1>
-        <p className="mt-3 text-ink-muted">Гонка не найдена или у вас больше нет к ней доступа.</p>
-        <ButtonLink href="/join" variant="secondary" className="mt-6">
-          Подключиться по коду
-        </ButtonLink>
-      </div>
-    );
-  }
+  // Everyone in the lobby moves to the race map the moment the race starts.
+  useEffect(() => {
+    if (previousStatus.current === "lobby" && lobby.race.status === "running") {
+      router.push(`/race/${lobby.race.id}`);
+    }
+    previousStatus.current = lobby.race.status;
+  }, [lobby.race.status, lobby.race.id, router]);
+
+  if (accessLost) return <AccessLost />;
 
   return (
     <>
