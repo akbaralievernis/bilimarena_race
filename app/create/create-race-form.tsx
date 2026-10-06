@@ -6,14 +6,10 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { TextAreaField, TextField } from "@/components/ui/field";
 import { LIMITS } from "@/lib/race/validation";
-import { createRaceAction } from "./actions";
-import { RouteEditor, type RouteDraftItem } from "./route-editor";
+import { createRaceAction, type CreateRaceField } from "./actions";
+import { RouteEditor, draftItem, serializeRoute } from "./route-editor";
 
-const INITIAL_ROUTE: RouteDraftItem[] = [
-  { id: "checkpoint-0", title: "" },
-  { id: "checkpoint-1", title: "" },
-  { id: "checkpoint-2", title: "" },
-];
+const INITIAL_ROUTE = [draftItem("checkpoint-0"), draftItem("checkpoint-1"), draftItem("checkpoint-2")];
 
 export function CreateRaceForm() {
   const [state, formAction, pending] = useFormAction(createRaceAction);
@@ -48,14 +44,19 @@ export function CreateRaceForm() {
         error={fieldError(state, "description")}
         disabled={locked}
       />
+      {/* Route and tasks travel as one JSON field; the server re-validates all of it. */}
+      <input type="hidden" name="route" value={JSON.stringify(serializeRoute(route))} />
       <RouteEditor
         items={route}
         onChange={setRoute}
-        itemError={(index) => fieldError(state, `checkpoint-${index}`)}
+        fieldError={(key) => fieldError(state, key as CreateRaceField)}
         error={fieldError(state, "route")}
         disabled={locked}
       />
       {state.status === "error" && state.message && <Alert>{state.message}</Alert>}
+      {state.status === "error" && !state.message && (
+        <Alert>Проверьте отмеченные поля — у каждого чекпоинта должно быть заполненное задание.</Alert>
+      )}
       <Button
         type="submit"
         className="w-full sm:w-auto"

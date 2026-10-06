@@ -1,6 +1,9 @@
 import { isRaceStatus, type RaceStatus } from "@/lib/race/status";
 
-/** Shape returned by public.get_lobby(). Contains no internal auth ids. */
+/**
+ * Shape returned by public.get_lobby(). Contains no internal auth ids and
+ * never a correct answer: the database does not put them into the snapshot.
+ */
 export type LobbyRace = {
   id: string;
   code: string;
@@ -18,27 +21,53 @@ export type LobbyViewer = {
   teamId: string | null;
 };
 
+/** Teacher-only team statistics (null for students). */
+export type TeamStats = { correct: number; wrong: number; finishedAt: string | null };
+
 /** position of the point the team stands on: 0 = START, last = FINISH. */
-export type LobbyTeam = { id: string; name: string; memberCount: number; position: number };
+export type LobbyTeam = { id: string; name: string; memberCount: number; position: number; stats: TeamStats | null };
 
 export type LobbyParticipant = { id: string; displayName: string; teamId: string | null };
 
 export type RoutePointType = "start" | "checkpoint" | "finish";
 
-/** One point of the race route, ordered by position (0 = START, last = FINISH). */
-export type RoutePoint = { position: number; title: string; type: RoutePointType };
+export type TaskType = "single_choice" | "short_answer";
+
+/**
+ * One point of the race route, ordered by position (0 = START, last = FINISH).
+ * `task` (question only) is sent to the race owner; everyone gets `hasTask`.
+ */
+export type RoutePoint = {
+  position: number;
+  title: string;
+  type: RoutePointType;
+  hasTask: boolean;
+  task: { type: TaskType; question: string } | null;
+};
+
+/** The task a student's team must solve to reach its next checkpoint. */
+export type CurrentTask = {
+  id: string;
+  checkpointPosition: number;
+  type: TaskType;
+  question: string;
+  options: string[] | null;
+};
 
 export type LobbySnapshot = {
   race: LobbyRace;
   viewer: LobbyViewer;
   route: RoutePoint[];
+  currentTask: CurrentTask | null;
   teams: LobbyTeam[];
   participants: LobbyParticipant[];
   studentCount: number;
 };
 
 const ROUTE_POINT_TYPES: readonly string[] = ["start", "checkpoint", "finish"];
+const TASK_TYPES: readonly string[] = ["single_choice", "short_answer"];
 const isPosition = (value: unknown): value is number => Number.isInteger(value) && (value as number) >= 0;
+const isCount = isPosition;
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -46,12 +75,71 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 const isString = (value: unknown): value is string => typeof value === "string";
 const isNullableString = (value: unknown): value is string | null => value === null || isString(value);
+const isTaskType = (value: unknown): value is TaskType => isString(value) && TASK_TYPES.includes(value);
+
+function invalid(): never {
+  throw new Error("invalid_lobby_payload");
+}
+
+// Stage 3 fields (hasTask, task, currentTask, stats) may be absent while the
+// database still runs the Stage 2 get_lobby(): the app then works without
+// tasks instead of failing. Present fields must still have the right type.
+function parseRoutePoint(point: unknown, index: number): RoutePoint {
+  if (
+    !isObject(point) ||
+    point.position !== index ||
+    !isString(point.title) ||
+    !isString(point.type) ||
+    !ROUTE_POINT_TYPES.includes(point.type) ||
+    (point.hasTask !== undefined && typeof point.hasTask !== "boolean")
+  ) {
+    invalid();
+  }
+  let task: RoutePoint["task"] = null;
+  if (point.task !== null && point.task !== undefined) {
+    if (!isObject(point.task) || !isTaskType(point.task.type) || !isString(point.task.question)) invalid();
+    task = { type: point.task.type, question: point.task.question };
+  }
+  return {
+    position: index,
+    title: point.title,
+    type: point.type as RoutePointType,
+    hasTask: point.hasTask === true || task !== null,
+    task,
+  };
+}
+
+function parseCurrentTask(value: unknown): CurrentTask | null {
+  if (value === null || value === undefined) return null;
+  if (
+    !isObject(value) ||
+    !isString(value.id) ||
+    !isPosition(value.checkpointPosition) ||
+    !isTaskType(value.type) ||
+    !isString(value.question)
+  ) {
+    invalid();
+  }
+  let options: string[] | null = null;
+  if (value.options !== null && value.options !== undefined) {
+    if (!Array.isArray(value.options) || !value.options.every(isString)) invalid();
+    options = [...value.options];
+  }
+  if ((value.type === "single_choice") !== (options !== null)) invalid();
+  return { id: value.id, checkpointPosition: value.checkpointPosition, type: value.type, question: value.question, options };
+}
+
+function parseStats(value: unknown): TeamStats | null {
+  if (value === null || value === undefined) return null;
+  if (!isObject(value) || !isCount(value.correct) || !isCount(value.wrong) || !isNullableString(value.finishedAt)) {
+    invalid();
+  }
+  return { correct: value.correct, wrong: value.wrong, finishedAt: value.finishedAt };
+}
 
 /** Validates the RPC payload so the UI never renders half-shaped data. */
 export function parseLobby(data: unknown): LobbySnapshot {
-  if (!isObject(data) || !isObject(data.race) || !isObject(data.viewer)) {
-    throw new Error("invalid_lobby_payload");
-  }
+  if (!isObject(data) || !isObject(data.race) || !isObject(data.viewer)) invalid();
   const { race, viewer, route, teams, participants, studentCount } = data;
 
   if (
@@ -71,21 +159,8 @@ export function parseLobby(data: unknown): LobbySnapshot {
     !Array.isArray(participants) ||
     typeof studentCount !== "number"
   ) {
-    throw new Error("invalid_lobby_payload");
+    invalid();
   }
-
-  const parsedRoute = route.map((point, index): RoutePoint => {
-    if (
-      !isObject(point) ||
-      point.position !== index ||
-      !isString(point.title) ||
-      !isString(point.type) ||
-      !ROUTE_POINT_TYPES.includes(point.type)
-    ) {
-      throw new Error("invalid_lobby_payload");
-    }
-    return { position: index, title: point.title, type: point.type as RoutePointType };
-  });
 
   const parsedTeams = teams.map((team): LobbyTeam => {
     if (
@@ -95,9 +170,15 @@ export function parseLobby(data: unknown): LobbySnapshot {
       typeof team.memberCount !== "number" ||
       !isPosition(team.position)
     ) {
-      throw new Error("invalid_lobby_payload");
+      invalid();
     }
-    return { id: team.id, name: team.name, memberCount: team.memberCount, position: team.position };
+    return {
+      id: team.id,
+      name: team.name,
+      memberCount: team.memberCount,
+      position: team.position,
+      stats: parseStats(team.stats),
+    };
   });
 
   const parsedParticipants = participants.map((participant): LobbyParticipant => {
@@ -107,7 +188,7 @@ export function parseLobby(data: unknown): LobbySnapshot {
       !isString(participant.displayName) ||
       !isNullableString(participant.teamId)
     ) {
-      throw new Error("invalid_lobby_payload");
+      invalid();
     }
     return { id: participant.id, displayName: participant.displayName, teamId: participant.teamId };
   });
@@ -128,7 +209,8 @@ export function parseLobby(data: unknown): LobbySnapshot {
       displayName: viewer.displayName,
       teamId: viewer.teamId,
     },
-    route: parsedRoute,
+    route: route.map(parseRoutePoint),
+    currentTask: parseCurrentTask(data.currentTask),
     teams: parsedTeams,
     participants: parsedParticipants,
     studentCount,

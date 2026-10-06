@@ -11,10 +11,19 @@ import { checkpointCount, pointName, teamProgress } from "@/lib/race/route";
 import type { RaceStatus } from "@/lib/race/status";
 import { RouteMap } from "./route-map";
 
+/** Local time of the viewer; the server may render in another time zone. */
+function FinishTime({ iso }: { iso: string }) {
+  return (
+    <time dateTime={iso} suppressHydrationWarning>
+      {new Date(iso).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+    </time>
+  );
+}
+
 const STATUS_HINTS: Record<RaceStatus, string> = {
   draft: "Гонка ещё не открыта.",
   lobby: "Гонка ещё не началась — все команды на старте.",
-  running: "Команды проходят чекпоинты — карта обновляется сама.",
+  running: "Команды отвечают на задания — карта и статистика обновляются сами.",
   finished: "Гонка завершена.",
 };
 
@@ -29,6 +38,7 @@ export function TeacherRace({
 }) {
   const runner = useActionRunner(refresh);
   const { race, route, teams } = lobby;
+  const total = checkpointCount(route);
 
   return (
     <div className="space-y-6">
@@ -88,8 +98,36 @@ export function TeacherRace({
                       )}
                     </div>
                     <p className="mt-1 text-sm text-ink-muted">
-                      {progress ? (progress.finished ? "Прошла весь маршрут" : pointName(progress.current)) : "—"}
+                      {progress
+                        ? progress.finished
+                          ? team.stats?.finishedAt
+                            ? <>Финиш в <FinishTime iso={team.stats.finishedAt} /></>
+                            : "Финиш"
+                          : team.position === 0
+                            ? "На старте"
+                            : `В пути · ${pointName(progress.current)}`
+                        : "—"}
                     </p>
+                    <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                      <div className="flex gap-1">
+                        <dt className="text-ink-muted">Пройдено:</dt>
+                        <dd className="font-bold tabular-nums">
+                          {Math.min(team.position, total)} из {total}
+                        </dd>
+                      </div>
+                      {team.stats && (
+                        <>
+                          <div className="flex gap-1">
+                            <dt className="text-ink-muted">Верно:</dt>
+                            <dd className="font-bold text-teal-strong tabular-nums">{team.stats.correct}</dd>
+                          </div>
+                          <div className="flex gap-1">
+                            <dt className="text-ink-muted">Неверно:</dt>
+                            <dd className="font-bold text-danger tabular-nums">{team.stats.wrong}</dd>
+                          </div>
+                        </>
+                      )}
+                    </dl>
                     <div
                       className="mt-3 h-2 overflow-hidden rounded-full bg-canvas ring-1 ring-line"
                       role="progressbar"

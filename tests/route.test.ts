@@ -4,13 +4,13 @@ import { checkpointCount, pointLabel, pointName, teamProgress, teamsAt } from "@
 import { validateCheckpointTitle, validateRoute } from "@/lib/race/validation";
 
 const route: RoutePoint[] = [
-  { position: 0, title: "Старт", type: "start" },
-  { position: 1, title: "Дроби", type: "checkpoint" },
-  { position: 2, title: "Проценты", type: "checkpoint" },
-  { position: 3, title: "Финиш", type: "finish" },
+  { position: 0, title: "Старт", type: "start", hasTask: false, task: null },
+  { position: 1, title: "Дроби", type: "checkpoint", hasTask: false, task: null },
+  { position: 2, title: "Проценты", type: "checkpoint", hasTask: false, task: null },
+  { position: 3, title: "Финиш", type: "finish", hasTask: false, task: null },
 ];
 
-const team = (id: string, position: number): LobbyTeam => ({ id, name: id, memberCount: 1, position });
+const team = (id: string, position: number): LobbyTeam => ({ id, name: id, memberCount: 1, position, stats: null });
 
 describe("route labels", () => {
   it("names START, checkpoints and FINISH", () => {

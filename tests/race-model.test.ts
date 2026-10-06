@@ -88,12 +88,14 @@ describe("parseLobby", () => {
     },
     viewer: { role: "student", participantId: "p1", displayName: "Эрнис", teamId: null },
     // Stage 2: get_lobby() also returns the route and every team position.
+    // Stage 3: points carry hasTask/task, teams carry teacher-only stats.
     route: [
-      { position: 0, title: "Старт", type: "start" },
-      { position: 1, title: "Дроби", type: "checkpoint" },
-      { position: 2, title: "Финиш", type: "finish" },
+      { position: 0, title: "Старт", type: "start", hasTask: false, task: null },
+      { position: 1, title: "Дроби", type: "checkpoint", hasTask: true, task: null },
+      { position: 2, title: "Финиш", type: "finish", hasTask: false, task: null },
     ],
-    teams: [{ id: "t1", name: "Альфа", memberCount: 0, position: 0 }],
+    currentTask: null,
+    teams: [{ id: "t1", name: "Альфа", memberCount: 0, position: 0, stats: null }],
     participants: [{ id: "p1", displayName: "Эрнис", teamId: null }],
     studentCount: 1,
   };

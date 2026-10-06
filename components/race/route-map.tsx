@@ -115,6 +115,20 @@ export function RouteMap({
                 {state === "next" && <span className="text-brand-strong"> · следующий</span>}
               </p>
               {point.type === "checkpoint" && <p className="font-bold break-words">{point.title}</p>}
+              {point.task ? (
+                <p className="mt-1 line-clamp-2 text-sm break-words text-ink-muted" title={point.task.question}>
+                  <span className="font-semibold text-brand-strong">
+                    {point.task.type === "single_choice" ? "Выбор ответа" : "Короткий ответ"}:
+                  </span>{" "}
+                  {point.task.question}
+                </p>
+              ) : (
+                point.hasTask && (
+                  <span className="mt-1 inline-flex rounded-full bg-brand-soft px-2 py-0.5 text-xs font-bold text-brand-strong">
+                    Задание
+                  </span>
+                )
+              )}
               {here.length > 0 && (
                 <ul className="mt-2 flex flex-wrap gap-1.5" aria-label={`Команды: ${pointLabel(point)}`}>
                   {here.map((team) => (

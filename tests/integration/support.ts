@@ -117,7 +117,22 @@ export async function listen(client: SupabaseClient, raceId: string) {
     });
   }
 
-  return { channel, status, nextEvent };
+  /** Call before triggering the change; resolves with the first signal from `table` (or null). */
+  function waitForTable(table: string, timeoutMs = 10_000) {
+    const seen = events.length;
+    return new Promise<unknown>((resolve) => {
+      const timer = setTimeout(() => resolve(null), timeoutMs);
+      onEvent = () => {
+        const match = events.slice(seen).find((event) => (event as { table?: string })?.table === table);
+        if (match) {
+          clearTimeout(timer);
+          resolve(match);
+        }
+      };
+    });
+  }
+
+  return { channel, status, nextEvent, waitForTable };
 }
 
 /** Closes a reused teacher's race even after a failed test, then signs everyone out locally. */

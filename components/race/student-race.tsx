@@ -1,15 +1,20 @@
 "use client";
 
-import { advanceTeamAction } from "@/app/race/[raceId]/actions";
+import { useRef, useState } from "react";
+import { advanceTeamAction, submitAnswerAction } from "@/app/race/[raceId]/actions";
 import { ConnectionBanner, ConnectionPill } from "@/components/lobby/connection-status";
 import { StatusBadge } from "@/components/lobby/status-badge";
 import { useActionRunner } from "@/components/lobby/use-action-runner";
 import type { ConnectionState } from "@/components/lobby/use-lobby";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { NETWORK_ERROR_MESSAGE, UNKNOWN_ERROR_MESSAGE, isNetworkError } from "@/lib/race/errors";
 import { teamColor, type LobbySnapshot, type RoutePoint } from "@/lib/race/lobby";
-import { pointLabel, teamProgress } from "@/lib/race/route";
+import { checkpointCount, pointLabel, teamProgress } from "@/lib/race/route";
 import { RouteMap } from "./route-map";
+import { TaskCard } from "./task-card";
+
+type Feedback = { tone: "success" | "error" | "info"; text: string };
 
 function PointCard({ caption, point, tone }: { caption: string; point: RoutePoint; tone: "now" | "next" }) {
   return (
@@ -25,7 +30,7 @@ function PointCard({ caption, point, tone }: { caption: string; point: RoutePoin
   );
 }
 
-function buttonLabel(status: string, next: RoutePoint) {
+function legacyButtonLabel(status: string, next: RoutePoint) {
   if (status === "lobby" || status === "draft") return "Ждём старта гонки";
   if (status === "finished") return "Гонка завершена";
   return next.type === "finish" ? "Финишировать" : `Пройти чекпоинт ${next.position}`;
@@ -41,17 +46,56 @@ export function StudentRace({
   refresh: () => Promise<void>;
 }) {
   const runner = useActionRunner(refresh);
-  const { race, route, teams, viewer } = lobby;
+  const answering = useRef(false);
+  const [answerPending, setAnswerPending] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+
+  const { race, route, teams, viewer, currentTask } = lobby;
   const team = teams.find((candidate) => candidate.id === viewer.teamId) ?? null;
   const progress = team ? teamProgress(route, team.position) : null;
   const color = teamColor(teams, viewer.teamId);
+  const total = checkpointCount(route);
+  const passed = team ? Math.min(team.position, total) : 0;
+  const nextHasTask = Boolean(progress?.next?.hasTask);
+  const taskPoint = currentTask ? route[currentTask.checkpointPosition] : null;
 
-  async function advance() {
+  async function answer(value: string) {
+    if (!team || !currentTask || answering.current) return;
+    // Synchronous lock: a double click cannot send the answer twice.
+    answering.current = true;
+    setAnswerPending(true);
+    setFeedback(null);
+    try {
+      const result = await submitAnswerAction(team.id, currentTask.id, value);
+      if (!result.ok) setFeedback({ tone: "error", text: result.message });
+      else if (result.alreadyPassed) {
+        setFeedback({ tone: "info", text: "Команда уже прошла этот чекпоинт — карта обновлена." });
+      } else if (result.correct) {
+        setFeedback({
+          tone: "success",
+          text: result.finished
+            ? "Верно! Команда прошла последний чекпоинт и финишировала."
+            : `Верно! Команда прошла чекпоинт ${currentTask.checkpointPosition}.`,
+        });
+      } else {
+        setFeedback({ tone: "error", text: "Неверно. Команда остаётся на месте — попробуйте ещё раз." });
+      }
+      await refresh();
+    } catch (error) {
+      setFeedback({
+        tone: "error",
+        text: !navigator.onLine || isNetworkError(error) ? NETWORK_ERROR_MESSAGE : UNKNOWN_ERROR_MESSAGE,
+      });
+    } finally {
+      answering.current = false;
+      setAnswerPending(false);
+    }
+  }
+
+  async function advanceLegacy() {
     if (!team || !progress?.next) return;
-    // Always ask for exactly the next point; the server re-checks everything.
     const target = progress.next.position;
     const ok = await runner.run("advance", () => advanceTeamAction(team.id, target));
-    // A teammate may have moved first: re-read the map either way.
     if (!ok) void refresh();
   }
 
@@ -81,7 +125,18 @@ export function StudentRace({
                   <span className="size-3.5 shrink-0 rounded-full" style={{ backgroundColor: color ?? undefined }} aria-hidden="true" />
                   {team.name}
                 </p>
+                {total > 0 && (
+                  <p className="mt-1 text-sm text-ink-muted">
+                    Пройдено чекпоинтов: {passed} из {total}
+                  </p>
+                )}
               </div>
+
+              {feedback && (
+                <Alert tone={feedback.tone} className="animate-pop-in mt-4">
+                  {feedback.text}
+                </Alert>
+              )}
 
               {progress.finished ? (
                 <div key="finished" className="animate-pop-in mt-4 rounded-2xl bg-teal-soft px-5 py-6 text-center" role="status">
@@ -92,6 +147,19 @@ export function StudentRace({
                   <p className="mt-2 font-display text-2xl font-bold text-teal-strong">Финиш!</p>
                   <p className="mt-1 text-sm">Ваша команда прошла маршрут.</p>
                 </div>
+              ) : nextHasTask ? (
+                currentTask && taskPoint && race.status === "running" ? (
+                  <TaskCard key={currentTask.id} task={currentTask} point={taskPoint} pending={answerPending} onSubmit={answer} />
+                ) : (
+                  <div className="mt-4 rounded-2xl bg-canvas px-5 py-4 ring-1 ring-line">
+                    <p className="font-bold">{progress.next ? `Дальше: ${pointLabel(progress.next)}` : ""}</p>
+                    <p className="mt-1 text-sm text-ink-muted">
+                      {race.status === "finished"
+                        ? "Гонка завершена — ответы больше не принимаются."
+                        : "Задание откроется, когда учитель начнёт гонку."}
+                    </p>
+                  </div>
+                )
               ) : (
                 <>
                   <dl key={team.position} className="animate-pop-in mt-4 grid grid-cols-2 gap-3">
@@ -104,17 +172,14 @@ export function StudentRace({
                       disabled={race.status !== "running"}
                       pending={runner.isPending("advance")}
                       pendingLabel="Проходим…"
-                      onClick={advance}
+                      onClick={advanceLegacy}
                     >
-                      {buttonLabel(race.status, progress.next)}
+                      {legacyButtonLabel(race.status, progress.next)}
                     </Button>
                   )}
-                  <p className="mt-2 text-center text-xs text-ink-muted">
-                    Пока чекпоинт проходится кнопкой — задания появятся на следующих этапах.
-                  </p>
+                  {runner.errorFor("advance") && <Alert className="mt-4">{runner.errorFor("advance")}</Alert>}
                 </>
               )}
-              {runner.errorFor("advance") && <Alert className="mt-4">{runner.errorFor("advance")}</Alert>}
             </>
           )}
         </section>

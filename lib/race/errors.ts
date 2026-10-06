@@ -40,6 +40,12 @@ const RACE_ERROR_MESSAGES = {
   race_not_started: "Гонка ещё не началась.",
   invalid_move: "Позиция команды уже изменилась — карта обновлена.",
   team_finished: "Команда уже на финише.",
+  invalid_tasks: "У каждого чекпоинта должно быть задание.",
+  invalid_task: "Проверьте задания: вопрос, варианты и правильный ответ.",
+  task_required: "Чтобы пройти этот чекпоинт, ответьте на задание.",
+  task_not_found: "Задание не найдено. Обновите страницу.",
+  task_not_current: "Это задание уже неактуально — карта обновлена.",
+  invalid_answer: "Проверьте ответ: выберите вариант или введите текст до 200 символов.",
 } as const;
 
 export type RaceErrorCode = keyof typeof RACE_ERROR_MESSAGES;

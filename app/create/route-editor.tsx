@@ -1,17 +1,59 @@
 "use client";
 
 import { useRef, useState } from "react";
+import type { TaskType } from "@/lib/race/lobby";
+import { TASK_LIMITS, TASK_TYPE_LABELS } from "@/lib/race/tasks";
 import { LIMITS } from "@/lib/race/validation";
 
-export type RouteDraftItem = { id: string; title: string };
-
-type RouteEditorProps = {
-  items: RouteDraftItem[];
-  onChange: (items: RouteDraftItem[]) => void;
-  itemError: (index: number) => string | undefined;
-  error?: string;
-  disabled: boolean;
+export type OptionDraft = { id: string; text: string };
+export type TaskDraft = {
+  type: TaskType;
+  question: string;
+  options: OptionDraft[];
+  correctOptionId: string | null;
+  correctAnswer: string;
 };
+export type RouteDraftItem = { id: string; title: string; task: TaskDraft };
+
+/** Deterministic ids for the first render (server and client must agree). */
+export function draftItem(id: string): RouteDraftItem {
+  return {
+    id,
+    title: "",
+    task: {
+      type: "single_choice",
+      question: "",
+      options: [
+        { id: `${id}-o0`, text: "" },
+        { id: `${id}-o1`, text: "" },
+      ],
+      correctOptionId: null,
+      correctAnswer: "",
+    },
+  };
+}
+
+/** What the form posts (hidden "route" field): titles and tasks in route order. */
+export function serializeRoute(items: RouteDraftItem[]) {
+  return items.map(({ title, task }) => ({
+    title,
+    task:
+      task.type === "single_choice"
+        ? {
+            type: task.type,
+            question: task.question,
+            options: task.options.map((option) => option.text),
+            correctOption: task.options.findIndex((option) => option.id === task.correctOptionId),
+          }
+        : { type: task.type, question: task.question, correctAnswer: task.correctAnswer },
+  }));
+}
+
+type FieldError = (key: string) => string | undefined;
+
+const control =
+  "w-full min-w-0 rounded-xl bg-surface px-3 text-base ring-1 ring-line transition placeholder:text-ink-muted/70 " +
+  "hover:ring-brand/40 focus:ring-2 focus:ring-brand focus:outline-none aria-invalid:ring-2 aria-invalid:ring-danger";
 
 const iconButton =
   "flex size-10 shrink-0 items-center justify-center rounded-xl text-ink-muted ring-1 ring-line transition " +
@@ -33,6 +75,23 @@ function Arrow({ up }: { up?: boolean }) {
   );
 }
 
+function Cross() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" className="size-4">
+      <path d="M6 6l8 8m0-8l-8 8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ErrorText({ id, message }: { id: string; message?: string }) {
+  if (!message) return null;
+  return (
+    <p id={id} className="mt-1.5 text-sm font-semibold text-danger">
+      {message}
+    </p>
+  );
+}
+
 function FixedPoint({ label, tone }: { label: string; tone: "start" | "finish" }) {
   return (
     <li className="flex items-center gap-3 rounded-2xl bg-canvas px-3 py-2.5 ring-1 ring-line">
@@ -49,20 +108,184 @@ function FixedPoint({ label, tone }: { label: string; tone: "start" | "finish" }
   );
 }
 
+function TaskEditor({
+  item,
+  index,
+  onChange,
+  makeId,
+  fieldError,
+}: {
+  item: RouteDraftItem;
+  index: number;
+  onChange: (task: TaskDraft) => void;
+  makeId: () => string;
+  fieldError: FieldError;
+}) {
+  const { task } = item;
+  const questionId = `question-${item.id}`;
+  const answerId = `answer-${item.id}`;
+  const questionError = fieldError(`question-${index}`);
+  const optionsError = fieldError(`options-${index}`);
+  const answerError = fieldError(`answer-${index}`);
+  const set = (patch: Partial<TaskDraft>) => onChange({ ...task, ...patch });
+
+  return (
+    <div className="mt-3 rounded-xl bg-canvas p-3 ring-1 ring-line">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-bold">Задание</p>
+        <div role="group" aria-label={`Тип задания чекпоинта ${index + 1}`} className="flex gap-1 rounded-xl bg-surface p-1 ring-1 ring-line">
+          {(["single_choice", "short_answer"] as const).map((type) => (
+            <button
+              key={type}
+              type="button"
+              aria-pressed={task.type === type}
+              onClick={() => set({ type })}
+              className={`min-h-9 rounded-lg px-3 text-sm font-bold transition ${
+                task.type === type ? "bg-brand text-white" : "text-ink-muted hover:text-ink"
+              }`}
+            >
+              {TASK_TYPE_LABELS[type]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <label htmlFor={questionId} className="mt-3 block text-sm font-semibold text-ink-muted">
+        Вопрос
+      </label>
+      <textarea
+        id={questionId}
+        value={task.question}
+        onChange={(event) => set({ question: event.target.value })}
+        maxLength={TASK_LIMITS.question.max}
+        rows={2}
+        placeholder="Например, «Сколько будет 3/4 + 1/4?»"
+        aria-invalid={questionError ? true : undefined}
+        aria-describedby={questionError ? `${questionId}-error` : undefined}
+        className={`${control} mt-1.5 min-h-16 resize-y py-2`}
+      />
+      <ErrorText id={`${questionId}-error`} message={questionError} />
+
+      {task.type === "single_choice" ? (
+        <fieldset className="mt-3 min-w-0">
+          <legend className="text-sm font-semibold text-ink-muted">Варианты — отметьте правильный</legend>
+          <ul className="mt-1.5 space-y-2">
+            {task.options.map((option, optionIndex) => {
+              const inputId = `option-${option.id}`;
+              return (
+                <li key={option.id} className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name={`correct-${item.id}`}
+                    checked={task.correctOptionId === option.id}
+                    onChange={() => set({ correctOptionId: option.id })}
+                    aria-label={`Вариант ${optionIndex + 1} — правильный`}
+                    className="size-5 shrink-0 accent-brand"
+                  />
+                  <label htmlFor={inputId} className="sr-only">
+                    Вариант {optionIndex + 1}
+                  </label>
+                  <input
+                    id={inputId}
+                    value={option.text}
+                    onChange={(event) =>
+                      set({
+                        options: task.options.map((other) =>
+                          other.id === option.id ? { ...other, text: event.target.value } : other,
+                        ),
+                      })
+                    }
+                    maxLength={TASK_LIMITS.option.max}
+                    placeholder={`Вариант ${optionIndex + 1}`}
+                    autoComplete="off"
+                    className={`${control} min-h-10 flex-1`}
+                  />
+                  <button
+                    type="button"
+                    className={iconButton}
+                    disabled={task.options.length <= TASK_LIMITS.options.min}
+                    onClick={() =>
+                      set({
+                        options: task.options.filter((other) => other.id !== option.id),
+                        correctOptionId: task.correctOptionId === option.id ? null : task.correctOptionId,
+                      })
+                    }
+                    aria-label={`Удалить вариант ${optionIndex + 1}`}
+                  >
+                    <Cross />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          <ErrorText id={`options-${item.id}-error`} message={optionsError ?? answerError} />
+          <button
+            type="button"
+            onClick={() => set({ options: [...task.options, { id: makeId(), text: "" }] })}
+            disabled={task.options.length >= TASK_LIMITS.options.max}
+            className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-bold text-brand-strong transition hover:bg-brand-soft disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            + Вариант
+          </button>
+        </fieldset>
+      ) : (
+        <div className="mt-3">
+          <label htmlFor={answerId} className="block text-sm font-semibold text-ink-muted">
+            Правильный ответ
+          </label>
+          <input
+            id={answerId}
+            value={task.correctAnswer}
+            onChange={(event) => set({ correctAnswer: event.target.value })}
+            maxLength={TASK_LIMITS.answer.max}
+            autoComplete="off"
+            aria-invalid={answerError ? true : undefined}
+            aria-describedby={`${answerId}-hint`}
+            className={`${control} mt-1.5 min-h-10`}
+          />
+          <p id={`${answerId}-hint`} className="mt-1 text-xs text-ink-muted">
+            Регистр, лишние пробелы и ё/е при проверке не важны.
+          </p>
+          <ErrorText id={`${answerId}-error`} message={answerError} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 /**
- * Checkpoints between START and FINISH: add, rename, reorder (↑ ↓), remove.
- * Inputs are named "checkpoint", so the form submits titles in route order.
+ * Checkpoints between START and FINISH with one task each: add, rename,
+ * reorder (↑ ↓), remove, and edit the task. The parent form posts
+ * serializeRoute(items) as JSON; the server validates everything again.
  */
-export function RouteEditor({ items, onChange, itemError, error, disabled }: RouteEditorProps) {
+export function RouteEditor({
+  items,
+  onChange,
+  fieldError,
+  error,
+  disabled,
+}: {
+  items: RouteDraftItem[];
+  onChange: (items: RouteDraftItem[]) => void;
+  fieldError: FieldError;
+  error?: string;
+  disabled: boolean;
+}) {
   const [nextId, setNextId] = useState(items.length);
+  const counter = useRef(0);
   const focusId = useRef<string | null>(null);
   const { min, max } = LIMITS.route;
+
+  function makeId() {
+    counter.current += 1;
+    return `new-${counter.current}`;
+  }
 
   function add() {
     const id = `checkpoint-${nextId}`;
     setNextId((value) => value + 1);
     focusId.current = id;
-    onChange([...items, { id, title: "" }]);
+    onChange([...items, draftItem(id)]);
   }
 
   function move(index: number, delta: -1 | 1) {
@@ -71,12 +294,15 @@ export function RouteEditor({ items, onChange, itemError, error, disabled }: Rou
     onChange(next);
   }
 
+  const update = (id: string, patch: Partial<RouteDraftItem>) =>
+    onChange(items.map((other) => (other.id === id ? { ...other, ...patch } : other)));
+
   return (
     <fieldset disabled={disabled} aria-describedby="route-hint" className="min-w-0">
-      <legend className="text-sm font-bold">Маршрут</legend>
+      <legend className="text-sm font-bold">Маршрут и задания</legend>
       <div className="mt-1 flex items-baseline justify-between gap-3">
         <p id="route-hint" className="text-sm text-ink-muted">
-          Команды пройдут чекпоинты строго по порядку — от старта до финиша.
+          Команда проходит чекпоинт, только правильно ответив на его задание.
         </p>
         <span className="shrink-0 text-sm text-ink-muted">
           {items.length} / {max}
@@ -87,7 +313,7 @@ export function RouteEditor({ items, onChange, itemError, error, disabled }: Rou
         <FixedPoint label="Старт" tone="start" />
         {items.map((item, index) => {
           const inputId = `route-${item.id}`;
-          const message = itemError(index);
+          const titleError = fieldError(`checkpoint-${index}`);
           const controls = (
             <>
               <button
@@ -115,14 +341,12 @@ export function RouteEditor({ items, onChange, itemError, error, disabled }: Rou
                 disabled={items.length <= min}
                 aria-label={`Удалить чекпоинт ${index + 1}`}
               >
-                <svg viewBox="0 0 20 20" aria-hidden="true" className="size-4">
-                  <path d="M6 6l8 8m0-8l-8 8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
+                <Cross />
               </button>
             </>
           );
           return (
-            <li key={item.id} className="rounded-2xl p-2 ring-1 ring-line">
+            <li key={item.id} className="rounded-2xl p-2 ring-1 ring-line sm:p-3">
               <div className="flex items-center gap-2">
                 <span
                   className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-sm font-bold text-brand-strong"
@@ -135,7 +359,6 @@ export function RouteEditor({ items, onChange, itemError, error, disabled }: Rou
                 </label>
                 <input
                   id={inputId}
-                  name="checkpoint"
                   ref={(element) => {
                     if (element && focusId.current === item.id) {
                       element.focus();
@@ -143,25 +366,26 @@ export function RouteEditor({ items, onChange, itemError, error, disabled }: Rou
                     }
                   }}
                   value={item.title}
-                  onChange={(event) =>
-                    onChange(items.map((other) => (other.id === item.id ? { ...other, title: event.target.value } : other)))
-                  }
+                  onChange={(event) => update(item.id, { title: event.target.value })}
                   placeholder={`Чекпоинт ${index + 1}`}
                   maxLength={LIMITS.checkpointTitle.max}
                   autoComplete="off"
-                  aria-invalid={message ? true : undefined}
-                  aria-describedby={message ? `${inputId}-error` : undefined}
-                  className="min-h-10 w-full min-w-0 flex-1 rounded-xl bg-surface px-3 text-base ring-1 ring-line transition placeholder:text-ink-muted/70 hover:ring-brand/40 focus:ring-2 focus:ring-brand focus:outline-none aria-invalid:ring-2 aria-invalid:ring-danger"
+                  aria-invalid={titleError ? true : undefined}
+                  aria-describedby={titleError ? `${inputId}-error` : undefined}
+                  className={`${control} min-h-10 flex-1`}
                 />
                 <div className="hidden gap-2 sm:flex">{controls}</div>
               </div>
               {/* Phones: controls on their own row so the title field stays wide. */}
               <div className="mt-2 flex justify-end gap-2 sm:hidden">{controls}</div>
-              {message && (
-                <p id={`${inputId}-error`} className="mt-1.5 px-1 text-sm font-semibold text-danger">
-                  {message}
-                </p>
-              )}
+              <ErrorText id={`${inputId}-error`} message={titleError} />
+              <TaskEditor
+                item={item}
+                index={index}
+                onChange={(task) => update(item.id, { task })}
+                makeId={makeId}
+                fieldError={fieldError}
+              />
             </li>
           );
         })}

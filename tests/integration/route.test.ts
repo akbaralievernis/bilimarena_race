@@ -13,7 +13,7 @@ const RUN_ID = randomUUID().slice(0, 8);
 
 type Lobby = {
   race: { code: string };
-  route: { position: number; title: string; type: string }[];
+  route: { position: number; title: string; type: string; hasTask: boolean; task: unknown }[];
   teams: { id: string; name: string; position: number }[];
   participants: { id: string; displayName: string }[];
 };
@@ -57,11 +57,13 @@ describe.skipIf(!isConfigured)("Supabase integration: route and team movement", 
 
   it("stores the route in order and puts teams on START", async () => {
     const lobby = await lobbyFor(alphaStudent);
+    // Stage 3 contract: every point carries hasTask and task (question, owner only).
+    // This race was created without tasks, so it runs in Stage 2 button mode.
     expect(lobby.route).toEqual([
-      { position: 0, title: "Старт", type: "start" },
-      { position: 1, title: "Дроби", type: "checkpoint" },
-      { position: 2, title: "Проценты", type: "checkpoint" },
-      { position: 3, title: "Финиш", type: "finish" },
+      { position: 0, title: "Старт", type: "start", hasTask: false, task: null },
+      { position: 1, title: "Дроби", type: "checkpoint", hasTask: false, task: null },
+      { position: 2, title: "Проценты", type: "checkpoint", hasTask: false, task: null },
+      { position: 3, title: "Финиш", type: "finish", hasTask: false, task: null },
     ]);
     expect(lobby.teams.map((team) => team.position)).toEqual([0, 0]);
   });
