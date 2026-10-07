@@ -12,6 +12,10 @@ export type LobbyNotice = { id: string; text: string };
 
 const REFRESH_DEBOUNCE_MS = 120;
 const POLL_WHILE_DISCONNECTED_MS = 10_000;
+// A signal can be lost even on a live socket (seen on the free Supabase tier):
+// during a race the map and leaderboard are re-read every 20–25 s anyway.
+const POLL_WHILE_RUNNING_MS = 20_000;
+const POLL_JITTER_MS = 5_000;
 
 // realtime-js reuses a channel with the same topic and removes it
 // asynchronously. A remount (React StrictMode, navigation) waits for the
@@ -22,7 +26,8 @@ const pendingRemovals = new Map<string, Promise<unknown>>();
  * Live lobby state. Realtime only signals "something changed" on the private
  * channel race:<id>; the snapshot is always re-read through get_lobby(), so
  * permissions are applied by the database and missed events self-heal on the
- * next read (after reconnecting, on focus, or by polling while disconnected).
+ * next read (after reconnecting, on focus, by polling while disconnected, and
+ * by a slow background read while the race is running).
  */
 export function useLobby(initial: LobbySnapshot) {
   const raceId = initial.race.id;
@@ -158,6 +163,21 @@ export function useLobby(initial: LobbySnapshot) {
     const timer = setInterval(() => void refresh(), POLL_WHILE_DISCONNECTED_MS);
     return () => clearInterval(timer);
   }, [connection, refresh]);
+
+  // Safety net while the race is running: a lost "lobby_changed" signal must not
+  // freeze the leaderboard until the next event. Visible tabs only; a random
+  // offset keeps a whole class from polling at the same second.
+  const running = lobby.race.status === "running";
+  useEffect(() => {
+    if (!running || connection !== "live") return;
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      if (document.visibilityState === "visible") void refresh();
+      timer = setTimeout(tick, POLL_WHILE_RUNNING_MS + Math.random() * POLL_JITTER_MS);
+    };
+    timer = setTimeout(tick, POLL_WHILE_RUNNING_MS + Math.random() * POLL_JITTER_MS);
+    return () => clearTimeout(timer);
+  }, [running, connection, refresh]);
 
   const dismissNotice = useCallback((id: string) => {
     setNotices((current) => current.filter((notice) => notice.id !== id));
