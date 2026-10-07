@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Unbounded } from "next/font/google";
+import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
@@ -35,7 +36,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <footer className="mx-auto w-full max-w-6xl px-4 py-8 text-sm text-ink-muted sm:px-6 lg:px-8">
           <div className="flex flex-col gap-1 border-t border-line pt-6 sm:flex-row sm:justify-between">
             <p>Bilim Arena Race</p>
-            <p>Ранняя версия · в разработке</p>
+            <p>
+              <Link href="/status" className="underline-offset-4 hover:text-brand-strong hover:underline">
+                Проверка перед уроком
+              </Link>
+              {" · "}ранняя версия
+            </p>
           </div>
         </footer>
       </body>

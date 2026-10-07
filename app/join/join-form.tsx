@@ -5,11 +5,35 @@ import { fieldError, useFormAction } from "@/components/forms/use-form-action";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/field";
-import { LIMITS, ROOM_CODE_LENGTH, normalizeRoomCode } from "@/lib/race/validation";
+import type { ActionResult } from "@/lib/actions";
+import { isSupabaseConfigured } from "@/lib/env";
+import {
+  LIMITS,
+  ROOM_CODE_LENGTH,
+  normalizeRoomCode,
+  validateDisplayName,
+  validateRoomCode,
+} from "@/lib/race/validation";
+import { ensureStudentSession } from "@/lib/supabase/student-session";
 import { joinRaceAction } from "./actions";
 
+/**
+ * Anonymous sign-in happens here, in the browser (see ensureStudentSession);
+ * the Server Action then joins the race with that session. Invalid input goes
+ * straight to the action for its field errors, without creating a user.
+ */
+async function joinFromBrowser(formData: FormData): Promise<ActionResult<"code" | "name">> {
+  const valid =
+    validateRoomCode(String(formData.get("code") ?? "")).ok && validateDisplayName(String(formData.get("name") ?? "")).ok;
+  if (valid && isSupabaseConfigured()) {
+    const message = await ensureStudentSession();
+    if (message) return { ok: false, message };
+  }
+  return joinRaceAction(formData);
+}
+
 export function JoinForm({ initialCode }: { initialCode: string }) {
-  const [state, formAction, pending] = useFormAction(joinRaceAction);
+  const [state, formAction, pending] = useFormAction(joinFromBrowser);
   const [code, setCode] = useState(() => normalizeRoomCode(initialCode).slice(0, ROOM_CODE_LENGTH));
   const [name, setName] = useState("");
   const locked = pending || (state.status === "success" && state.redirecting);

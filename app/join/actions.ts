@@ -13,7 +13,7 @@ const CODE_ERRORS = new Set(["race_not_found", "race_finished", "race_not_open",
 const NAME_ERRORS = new Set(["display_name_taken", "invalid_display_name"]);
 
 /**
- * Student join: ensure an (anonymous) session, then let join_race() validate
+ * Student join: with the (anonymous) session from the browser, let join_race() validate
  * the code and create the seat. The browser never writes the participant row.
  */
 export async function joinRaceAction(formData: FormData): Promise<ActionResult<JoinField>> {
@@ -31,6 +31,8 @@ export async function joinRaceAction(formData: FormData): Promise<ActionResult<J
   const supabase = await createClient();
   const { data: session } = await supabase.auth.getClaims();
   if (!session?.claims) {
+    // Normally the browser has already signed in (join-form.tsx — the rate
+    // limit then counts the school's IP, not the server's). This is a fallback.
     // A returning student keeps the same anonymous user (cookie), so a reload
     // or a retry after a typo never creates a second participant.
     const { error } = await supabase.auth.signInAnonymously();

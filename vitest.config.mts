@@ -8,8 +8,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
-    // Needs a real Supabase project: run with `npm run test:integration`.
-    exclude: ["tests/integration/**"],
+    // Need a real Supabase project: `npm run test:integration` / `npm run test:load`.
+    exclude: ["tests/integration/**", "tests/load/**"],
     // Database tests boot an in-process Postgres (PGlite) per file.
     testTimeout: 30_000,
     hookTimeout: 60_000,
