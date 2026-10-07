@@ -62,10 +62,10 @@ export default async function CreateRacePage() {
         ) : (
           <ul className="mt-4 space-y-2">
             {races.map((race) => (
-              <li key={race.id}>
+              <li key={race.id} className="flex items-stretch gap-2">
                 <Link
                   href={`/race/${race.id}/lobby`}
-                  className="flex items-center gap-3 rounded-2xl px-3 py-3 ring-1 ring-line transition hover:bg-canvas hover:ring-brand/40"
+                  className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-3 py-3 ring-1 ring-line transition hover:bg-canvas hover:ring-brand/40"
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-bold">{race.title}</span>
@@ -75,6 +75,15 @@ export default async function CreateRacePage() {
                   </span>
                   <StatusBadge status={race.status} />
                 </Link>
+                {race.status !== "draft" && race.status !== "lobby" && (
+                  <Link
+                    href={`/race/${race.id}/results`}
+                    className="grid shrink-0 place-items-center rounded-2xl px-3 text-sm font-bold text-brand-strong ring-1 ring-line transition hover:bg-brand-soft hover:ring-brand/40"
+                    aria-label={`Отчёт: ${race.title}`}
+                  >
+                    Отчёт
+                  </Link>
+                )}
               </li>
             ))}
           </ul>

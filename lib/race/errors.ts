@@ -73,6 +73,12 @@ export function isNetworkError(error: unknown): boolean {
   );
 }
 
+/** The project answers, but a function or table is missing: migrations not applied. */
+export function isDatabaseNotReady(error: unknown): boolean {
+  const { code } = asErrorLike(error);
+  return typeof code === "string" && DATABASE_NOT_READY_CODES.has(code);
+}
+
 /** UI text for an error from a race RPC. `overrides` adapts texts to the screen. */
 export function raceErrorMessage(
   error: unknown,
@@ -81,8 +87,7 @@ export function raceErrorMessage(
   if (isNetworkError(error)) return NETWORK_ERROR_MESSAGE;
   const code = raceErrorCode(error);
   if (code) return overrides[code] ?? RACE_ERROR_MESSAGES[code];
-  const { code: sqlState } = asErrorLike(error);
-  if (typeof sqlState === "string" && DATABASE_NOT_READY_CODES.has(sqlState)) return DATABASE_NOT_READY_MESSAGE;
+  if (isDatabaseNotReady(error)) return DATABASE_NOT_READY_MESSAGE;
   return UNKNOWN_ERROR_MESSAGE;
 }
 

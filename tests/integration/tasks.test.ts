@@ -7,6 +7,7 @@ import { cleanUp, expectLobbySignal, isConfigured, listen, rpc, rpcError, signIn
  * Stage 3 end-to-end: checkpoint tasks, server-side answer checks, secrecy of
  * the correct answers through the public API, and Realtime updates.
  * Stage 4: points, the 10-second pause after a wrong answer, score and place.
+ * Stage 5: the teacher's race report.
  * Same setup as lobby.test.ts; 2 anonymous students per run.
  */
 
@@ -38,6 +39,14 @@ type Answer = {
   finished: boolean;
   points: number;
   cooldownSeconds: number;
+};
+
+type Report = {
+  race: { id: string; status: string };
+  teams: { id: string; place: number }[];
+  tasks: { position: number; correct: number; wrong: number; teamsPassed: number; firstTryCorrect: number }[];
+  participants: { displayName: string }[];
+  timeline: { kind: string }[];
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -193,5 +202,27 @@ describe.skipIf(!isConfigured)("Supabase integration: checkpoint tasks", () => {
       "race_finished",
     );
     expect((await lobbyFor(teacher!)).teams.find((team) => team.id === beta)!.position).toBe(0);
+  });
+
+  // Stage 5: the report is the teacher's only, counts the race and keeps the answers secret.
+  it("the teacher's report has the standings and task analysis; students cannot read it", async () => {
+    const report = await rpc<Report>(teacher!, "get_race_report", { p_race_id: raceId });
+    expect(report.race).toMatchObject({ id: raceId, status: "finished" });
+    expect(report.teams.map((team) => [team.id, team.place])).toEqual([
+      [alpha, 1],
+      [beta, 2],
+    ]);
+    const [arith, word] = report.tasks;
+    expect(arith).toMatchObject({ position: 1, teamsPassed: 1, firstTryCorrect: 0 });
+    expect(arith.wrong).toBeGreaterThanOrEqual(1);
+    expect(word).toMatchObject({ position: 2, correct: 1, teamsPassed: 1, firstTryCorrect: 1 });
+    expect(report.participants.map((student) => student.displayName).sort()).toEqual(["Алина", "Эрнис"]);
+    expect(report.timeline.at(0)?.kind).toBe("start");
+    expect(report.timeline.at(-1)?.kind).toBe("race_finish");
+    expect(JSON.stringify(report)).not.toContain(SECRET);
+
+    for (const student of [alphaStudent, betaStudent]) {
+      expect(await rpcError(student, "get_race_report", { p_race_id: raceId })).toBe("race_not_found");
+    }
   });
 });

@@ -52,9 +52,14 @@ export function TeacherRace({
             <StatusBadge status={race.status} />
             <ConnectionPill state={connection} />
           </div>
-          <ButtonLink href={`/race/${race.id}/lobby`} variant="secondary" size="sm">
-            Лобби: команды и участники
-          </ButtonLink>
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href={`/race/${race.id}/results`} variant="secondary" size="sm">
+              Отчёт
+            </ButtonLink>
+            <ButtonLink href={`/race/${race.id}/lobby`} variant="secondary" size="sm">
+              Лобби: команды и участники
+            </ButtonLink>
+          </div>
         </div>
         <h1 className="mt-3 font-display text-2xl font-bold tracking-tight break-words sm:text-3xl">{race.title}</h1>
         <div className="mt-6 border-t border-line pt-6">
@@ -72,6 +77,9 @@ export function TeacherRace({
           <div className="mt-5 grid grid-cols-1">
             <Leaderboard teams={teams} route={route} detailed />
           </div>
+          <ButtonLink href={`/race/${race.id}/results`} className="mt-6 w-full sm:w-auto">
+            Подробный отчёт: задания, ученики, CSV
+          </ButtonLink>
         </section>
       )}
 

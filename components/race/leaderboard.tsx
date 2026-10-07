@@ -9,7 +9,7 @@ const PODIUM = [
   "bg-[#f3c9a8] text-ink",
 ] as const;
 
-function PlaceBadge({ place }: { place: number | null }) {
+export function PlaceBadge({ place }: { place: number | null }) {
   const podium = place !== null && place <= 3 ? PODIUM[place - 1] : "bg-canvas text-ink-muted ring-1 ring-line";
   return (
     <span
