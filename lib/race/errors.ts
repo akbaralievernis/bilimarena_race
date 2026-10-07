@@ -46,6 +46,7 @@ const RACE_ERROR_MESSAGES = {
   task_not_found: "Задание не найдено. Обновите страницу.",
   task_not_current: "Это задание уже неактуально — карта обновлена.",
   invalid_answer: "Проверьте ответ: выберите вариант или введите текст до 200 символов.",
+  answer_cooldown: "После неверного ответа команда ждёт 10 секунд — потом можно ответить снова.",
 } as const;
 
 export type RaceErrorCode = keyof typeof RACE_ERROR_MESSAGES;

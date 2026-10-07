@@ -6,6 +6,7 @@ import { cleanUp, expectLobbySignal, isConfigured, listen, rpc, rpcError, signIn
 /*
  * Stage 3 end-to-end: checkpoint tasks, server-side answer checks, secrecy of
  * the correct answers through the public API, and Realtime updates.
+ * Stage 4: points, the 10-second pause after a wrong answer, score and place.
  * Same setup as lobby.test.ts; 2 anonymous students per run.
  */
 
@@ -18,11 +19,28 @@ const TASKS = [
 
 type Lobby = {
   race: { code: string };
-  currentTask: { id: string; checkpointPosition: number; options: string[] | null } | null;
-  teams: { id: string; position: number; stats: { correct: number; wrong: number; finishedAt: string | null } | null }[];
+  currentTask: { id: string; checkpointPosition: number; options: string[] | null; cooldownSeconds: number } | null;
+  teams: {
+    id: string;
+    position: number;
+    score: number;
+    place: number;
+    finishOrder: number | null;
+    stats: { correct: number; wrong: number; finishedAt: string | null } | null;
+  }[];
   participants: { id: string; displayName: string }[];
 };
-type Answer = { correct: boolean | null; moved: boolean; alreadyPassed: boolean; position: number; finished: boolean };
+type Answer = {
+  correct: boolean | null;
+  moved: boolean;
+  alreadyPassed: boolean;
+  position: number;
+  finished: boolean;
+  points: number;
+  cooldownSeconds: number;
+};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe.skipIf(!isConfigured)("Supabase integration: checkpoint tasks", () => {
   let teacher: SupabaseClient | undefined;
@@ -93,7 +111,13 @@ describe.skipIf(!isConfigured)("Supabase integration: checkpoint tasks", () => {
     const subscription = await listen(betaStudent, raceId!);
     expect(subscription.status).toBe("SUBSCRIBED");
     const signal = subscription.waitForTable("task_submissions");
-    expect(await submit(alphaStudent, alpha, taskIds[0], "0")).toMatchObject({ correct: false, moved: false, position: 0 });
+    expect(await submit(alphaStudent, alpha, taskIds[0], "0")).toMatchObject({
+      correct: false,
+      moved: false,
+      position: 0,
+      points: -20,
+      cooldownSeconds: 10,
+    });
     expectLobbySignal(await signal, { table: "task_submissions", op: "insert" }, [raceId!, alpha, beta, taskIds[0]]);
   });
 
@@ -106,10 +130,26 @@ describe.skipIf(!isConfigured)("Supabase integration: checkpoint tasks", () => {
     expect(update.error?.code).toBe("42501");
   });
 
+  it("a wrong answer pauses the team for 10 seconds", async () => {
+    expect(await rpcError(alphaStudent, "submit_answer", { p_team_id: alpha, p_task_id: taskIds[0], p_answer: "1" })).toBe(
+      "answer_cooldown",
+    );
+    const paused = (await lobbyFor(alphaStudent)).currentTask!;
+    expect(paused.cooldownSeconds).toBeGreaterThan(0);
+    expect(paused.cooldownSeconds).toBeLessThanOrEqual(10);
+    // Wait out the pause on the real server clock.
+    await sleep(paused.cooldownSeconds * 1000 + 500);
+    expect((await lobbyFor(alphaStudent)).currentTask!.cooldownSeconds).toBe(0);
+  }, 20_000);
+
   it("a correct answer moves the team once and other clients see it", async () => {
     const subscription = await listen(betaStudent, raceId!);
     const moved = subscription.waitForTable("teams");
-    expect(await submit(alphaStudent, alpha, taskIds[0], "1")).toMatchObject({ correct: true, moved: true, position: 1 });
+    const right = await submit(alphaStudent, alpha, taskIds[0], "1");
+    expect(right).toMatchObject({ correct: true, moved: true, position: 1, cooldownSeconds: 0 });
+    // 100 + speed bonus (at most 50; the team has been thinking for over 10 s).
+    expect(right.points).toBeGreaterThanOrEqual(100);
+    expect(right.points).toBeLessThanOrEqual(150);
     expectLobbySignal(await moved, { table: "teams", op: "update" }, [raceId!, alpha, beta]);
     expect((await lobbyFor(betaStudent)).teams.find((team) => team.id === alpha)!.position).toBe(1);
 
@@ -129,9 +169,17 @@ describe.skipIf(!isConfigured)("Supabase integration: checkpoint tasks", () => {
       position: 3,
       finished: true,
     });
-    const stats = (await lobbyFor(teacher!)).teams.find((team) => team.id === alpha)!.stats!;
-    expect(stats).toMatchObject({ correct: 2, wrong: 1 });
-    expect(stats.finishedAt).not.toBeNull();
+    const teams = (await lobbyFor(teacher!)).teams;
+    const alphaRow = teams.find((team) => team.id === alpha)!;
+    expect(alphaRow.stats).toMatchObject({ correct: 2, wrong: 1 });
+    expect(alphaRow.stats!.finishedAt).not.toBeNull();
+    // First at FINISH: place 1, +100 finish bonus on top of two answers minus 20.
+    expect(alphaRow).toMatchObject({ place: 1, finishOrder: 1 });
+    expect(alphaRow.score).toBeGreaterThanOrEqual(100 + 100 - 20 + 100);
+    // Students see the same leaderboard, without the statistics.
+    const seenByBeta = (await lobbyFor(betaStudent)).teams.find((team) => team.id === alpha)!;
+    expect(seenByBeta).toMatchObject({ score: alphaRow.score, place: 1, stats: null });
+    expect(teams.find((team) => team.id === beta)).toMatchObject({ score: 0, place: 2, finishOrder: null });
   });
 
   it("a finished race takes no more answers", async () => {

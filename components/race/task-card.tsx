@@ -1,10 +1,29 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import type { CurrentTask, RoutePoint } from "@/lib/race/lobby";
 import { pointLabel } from "@/lib/race/route";
 import { TASK_LIMITS, isAnswerReady } from "@/lib/race/tasks";
+
+/**
+ * Seconds left of the pause after a wrong answer. The database sends the value
+ * with every lobby snapshot (a new `task` object each time), so the countdown
+ * restarts from the server's number after any refresh — also when a teammate
+ * answered wrong on another phone. The database enforces the pause anyway.
+ */
+function usePause(task: CurrentTask): number {
+  const [pause, setPause] = useState({ task, left: task.cooldownSeconds });
+  if (pause.task !== task) setPause({ task, left: task.cooldownSeconds });
+
+  useEffect(() => {
+    if (pause.left <= 0) return;
+    const timer = setTimeout(() => setPause((current) => ({ ...current, left: current.left - 1 })), 1000);
+    return () => clearTimeout(timer);
+  }, [pause.left]);
+
+  return Math.max(0, pause.left);
+}
 
 /**
  * The task of the team's next checkpoint. Keyed by task id in the parent, so
@@ -25,10 +44,11 @@ export function TaskCard({
   const [text, setText] = useState("");
   const answer = task.type === "single_choice" ? (choice === null ? "" : String(choice)) : text;
   const ready = isAnswerReady(task.type, answer);
+  const pause = usePause(task);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (ready && !pending) onSubmit(answer);
+    if (ready && !pending && pause === 0) onSubmit(answer);
   }
 
   return (
@@ -82,8 +102,18 @@ export function TaskCard({
         </div>
       )}
 
-      <Button type="submit" className="mt-4 w-full" disabled={!ready} pending={pending} pendingLabel="Проверяем…">
-        Ответить
+      {pause > 0 && (
+        <p className="mt-4 flex items-center gap-2 rounded-xl bg-danger-soft px-4 py-2.5 text-sm font-semibold text-danger">
+          <svg viewBox="0 0 20 20" aria-hidden="true" className="size-4 shrink-0">
+            <circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" strokeWidth="2" />
+            <path d="M10 6v4.5l2.5 1.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          Пауза после неверного ответа: ещё {pause} с
+        </p>
+      )}
+
+      <Button type="submit" className="mt-4 w-full" disabled={!ready || pause > 0} pending={pending} pendingLabel="Проверяем…">
+        {pause > 0 ? `Подождите ${pause} с` : "Ответить"}
       </Button>
     </form>
   );

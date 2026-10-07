@@ -10,7 +10,16 @@ const route: RoutePoint[] = [
   { position: 3, title: "Финиш", type: "finish", hasTask: false, task: null },
 ];
 
-const team = (id: string, position: number): LobbyTeam => ({ id, name: id, memberCount: 1, position, stats: null });
+const team = (id: string, position: number): LobbyTeam => ({
+  id,
+  name: id,
+  memberCount: 1,
+  position,
+  score: 0,
+  place: null,
+  finishOrder: null,
+  stats: null,
+});
 
 describe("route labels", () => {
   it("names START, checkpoints and FINISH", () => {

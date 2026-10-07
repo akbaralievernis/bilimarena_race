@@ -36,7 +36,18 @@ export async function advanceTeamAction(teamId: unknown, toPosition: unknown): P
 }
 
 export type AnswerResult =
-  | { ok: true; correct: boolean | null; moved: boolean; alreadyPassed: boolean; position: number; finished: boolean }
+  | {
+      ok: true;
+      correct: boolean | null;
+      moved: boolean;
+      alreadyPassed: boolean;
+      position: number;
+      finished: boolean;
+      /** Points this answer earned (Stage 4): 100 + speed bonus, −20 or 0. */
+      points: number;
+      /** Pause before the team may answer again; 0 after a correct answer. */
+      cooldownSeconds: number;
+    }
   | { ok: false; message: string };
 
 /**
@@ -76,5 +87,7 @@ export async function submitAnswerAction(teamId: unknown, taskId: unknown, answe
     alreadyPassed: result.alreadyPassed === true,
     position: typeof result.position === "number" ? result.position : 0,
     finished: result.finished === true,
+    points: typeof result.points === "number" ? result.points : 0,
+    cooldownSeconds: typeof result.cooldownSeconds === "number" ? result.cooldownSeconds : 0,
   };
 }

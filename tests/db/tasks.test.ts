@@ -3,7 +3,15 @@ import { createTestDb, expectDbError, type TestDb, type TestUser } from "./harne
 
 const PERMISSION_DENIED = "42501";
 
-type Answer = { correct: boolean | null; moved: boolean; alreadyPassed: boolean; position: number; finished: boolean };
+type Answer = {
+  correct: boolean | null;
+  moved: boolean;
+  alreadyPassed: boolean;
+  position: number;
+  finished: boolean;
+  points: number;
+  cooldownSeconds: number;
+};
 
 const SHORT_SECRET = "Секретный ответ Ыё";
 const TASKS = [
@@ -55,6 +63,12 @@ async function taskRace(options: { start?: boolean } = {}) {
 
 const submit = (user: TestUser, teamId: string, taskId: string, answer: string) =>
   t.rpc<Answer>(user, "submit_answer", [teamId, taskId, answer]);
+
+/** Moves the team's wrong answers 11 s into the past: the 10-second pause (Stage 4) is over. */
+const endPause = (teamId: string) =>
+  t.admin("update public.task_submissions set submitted_at = submitted_at - interval '11 seconds' where team_id = $1 and not is_correct", [
+    teamId,
+  ]);
 
 describe("creating tasks", () => {
   it("stores one task per checkpoint and keeps the answers in the private schema", async () => {
@@ -144,6 +158,8 @@ describe("answering", () => {
       alreadyPassed: false,
       position: 0,
       finished: false,
+      points: -20,
+      cooldownSeconds: 10,
     });
     expect(await positionOf(race.alpha)).toBe(0);
     const [row] = await t.admin<{ answer: string; is_correct: boolean }>(
@@ -154,6 +170,7 @@ describe("answering", () => {
   });
 
   it("a correct answer moves the team to the checkpoint and records the pass", async () => {
+    await endPause(race.alpha);
     expect(await submit(race.alice, race.alpha, race.taskIds[0], "1")).toMatchObject({
       correct: true,
       moved: true,
@@ -293,7 +310,15 @@ describe("correct answers stay secret", () => {
 
   it("the submit answer response never reveals the right answer", async () => {
     const result = await submit(race.bob, race.beta, race.taskIds[0], "2");
-    expect(Object.keys(result).sort()).toEqual(["alreadyPassed", "correct", "finished", "moved", "position"]);
+    expect(Object.keys(result).sort()).toEqual([
+      "alreadyPassed",
+      "cooldownSeconds",
+      "correct",
+      "finished",
+      "moved",
+      "points",
+      "position",
+    ]);
   });
 });
 
@@ -301,7 +326,9 @@ describe("statistics and realtime", () => {
   it("the teacher sees correct and wrong answers per team and the finish time", async () => {
     const race = await taskRace();
     await submit(race.alice, race.alpha, race.taskIds[0], "0");
+    await endPause(race.alpha);
     await submit(race.alice, race.alpha, race.taskIds[0], "2");
+    await endPause(race.alpha);
     await submit(race.alice, race.alpha, race.taskIds[0], "1");
 
     type Stats = { correct: number; wrong: number; finishedAt: string | null };
@@ -316,6 +343,7 @@ describe("statistics and realtime", () => {
     const race = await taskRace();
     await t.admin("delete from realtime.messages");
     await submit(race.alice, race.alpha, race.taskIds[0], "0");
+    await endPause(race.alpha);
     await submit(race.alice, race.alpha, race.taskIds[0], "1");
 
     const messages = await t.admin<{ topic: string; payload: Record<string, string> }>(

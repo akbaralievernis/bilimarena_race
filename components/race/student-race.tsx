@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { NETWORK_ERROR_MESSAGE, UNKNOWN_ERROR_MESSAGE, isNetworkError } from "@/lib/race/errors";
 import { teamColor, type LobbySnapshot, type RoutePoint } from "@/lib/race/lobby";
 import { checkpointCount, pointLabel, teamProgress } from "@/lib/race/route";
+import { SCORING, formatPoints, pointsWord, rulesSummary } from "@/lib/race/scoring";
+import { Leaderboard } from "./leaderboard";
 import { RouteMap } from "./route-map";
 import { TaskCard } from "./task-card";
 
@@ -71,14 +73,20 @@ export function StudentRace({
       else if (result.alreadyPassed) {
         setFeedback({ tone: "info", text: "Команда уже прошла этот чекпоинт — карта обновлена." });
       } else if (result.correct) {
+        const earned = `${formatPoints(result.points)} ${pointsWord(result.points)}`;
         setFeedback({
           tone: "success",
           text: result.finished
-            ? "Верно! Команда прошла последний чекпоинт и финишировала."
-            : `Верно! Команда прошла чекпоинт ${currentTask.checkpointPosition}.`,
+            ? `Верно! ${earned}. Команда прошла последний чекпоинт и финишировала.`
+            : `Верно! ${earned}. Команда прошла чекпоинт ${currentTask.checkpointPosition}.`,
         });
       } else {
-        setFeedback({ tone: "error", text: "Неверно. Команда остаётся на месте — попробуйте ещё раз." });
+        setFeedback({
+          tone: "error",
+          text: `Неверно: ${formatPoints(result.points)} ${pointsWord(result.points)}. Команда остаётся на месте — следующая попытка через ${
+            result.cooldownSeconds || SCORING.pauseSeconds
+          } секунд.`,
+        });
       }
       await refresh();
     } catch (error) {
@@ -130,12 +138,38 @@ export function StudentRace({
                     Пройдено чекпоинтов: {passed} из {total}
                   </p>
                 )}
+                {race.status !== "lobby" && race.status !== "draft" && (
+                  <dl className="mt-3 grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-canvas px-3 py-2 ring-1 ring-line">
+                      <dt className="text-xs font-bold text-ink-muted">Очки команды</dt>
+                      <dd className="font-display text-xl font-bold tabular-nums">{team.score}</dd>
+                    </div>
+                    <div className="rounded-xl bg-canvas px-3 py-2 ring-1 ring-line">
+                      <dt className="text-xs font-bold text-ink-muted">Место</dt>
+                      <dd className="font-display text-xl font-bold tabular-nums">
+                        {team.place ?? "—"}
+                        <span className="text-sm font-semibold text-ink-muted"> из {teams.length}</span>
+                      </dd>
+                    </div>
+                  </dl>
+                )}
               </div>
 
               {feedback && (
                 <Alert tone={feedback.tone} className="animate-pop-in mt-4">
                   {feedback.text}
                 </Alert>
+              )}
+
+              {race.status === "finished" && team.place !== null && (
+                <div className="animate-pop-in mt-4 rounded-2xl bg-sun-soft px-5 py-4" role="status">
+                  <p className="font-display text-xl font-bold">
+                    {team.place}-е место из {teams.length}
+                  </p>
+                  <p className="mt-1 text-sm">
+                    Гонка завершена. У вашей команды {team.score} {pointsWord(team.score)}.
+                  </p>
+                </div>
               )}
 
               {progress.finished ? (
@@ -145,7 +179,11 @@ export function StudentRace({
                     <path d="M5 3.5h3.3v3.5H5zm6.7 0H15V7h-3.3zM8.3 7h3.4v3.5H8.3z" fill="currentColor" />
                   </svg>
                   <p className="mt-2 font-display text-2xl font-bold text-teal-strong">Финиш!</p>
-                  <p className="mt-1 text-sm">Ваша команда прошла маршрут.</p>
+                  <p className="mt-1 text-sm">
+                    {team.finishOrder && team.finishOrder <= SCORING.finishBonus.length
+                      ? `Ваша команда финишировала ${team.finishOrder}-й: +${SCORING.finishBonus[team.finishOrder - 1]} очков.`
+                      : "Ваша команда прошла маршрут."}
+                  </p>
                 </div>
               ) : nextHasTask ? (
                 currentTask && taskPoint && race.status === "running" ? (
@@ -191,6 +229,13 @@ export function StudentRace({
           <div className="mt-5">
             <RouteMap route={route} teams={teams} ownTeamId={team?.id ?? null} />
           </div>
+          <h2 className="mt-6 font-display text-lg font-bold tracking-tight">
+            {race.status === "finished" ? "Итоги гонки" : "Таблица мест"}
+          </h2>
+          <div className="mt-3">
+            <Leaderboard teams={teams} route={route} ownTeamId={team?.id ?? null} />
+          </div>
+          <p className="mt-3 text-xs text-ink-muted">{rulesSummary()}</p>
         </section>
       </div>
     </div>

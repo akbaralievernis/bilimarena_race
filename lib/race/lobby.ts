@@ -24,8 +24,21 @@ export type LobbyViewer = {
 /** Teacher-only team statistics (null for students). */
 export type TeamStats = { correct: number; wrong: number; finishedAt: string | null };
 
-/** position of the point the team stands on: 0 = START, last = FINISH. */
-export type LobbyTeam = { id: string; name: string; memberCount: number; position: number; stats: TeamStats | null };
+/**
+ * position: the point the team stands on (0 = START, last = FINISH).
+ * score / place / finishOrder: Stage 4 standings computed by the database
+ * (place: 1 = leader, equal teams share it; finishOrder: 1, 2, 3… or null).
+ */
+export type LobbyTeam = {
+  id: string;
+  name: string;
+  memberCount: number;
+  position: number;
+  score: number;
+  place: number | null;
+  finishOrder: number | null;
+  stats: TeamStats | null;
+};
 
 export type LobbyParticipant = { id: string; displayName: string; teamId: string | null };
 
@@ -45,13 +58,17 @@ export type RoutePoint = {
   task: { type: TaskType; question: string } | null;
 };
 
-/** The task a student's team must solve to reach its next checkpoint. */
+/**
+ * The task a student's team must solve to reach its next checkpoint.
+ * cooldownSeconds: seconds left of the pause after a wrong answer (0 = may answer).
+ */
 export type CurrentTask = {
   id: string;
   checkpointPosition: number;
   type: TaskType;
   question: string;
   options: string[] | null;
+  cooldownSeconds: number;
 };
 
 export type LobbySnapshot = {
@@ -68,6 +85,7 @@ const ROUTE_POINT_TYPES: readonly string[] = ["start", "checkpoint", "finish"];
 const TASK_TYPES: readonly string[] = ["single_choice", "short_answer"];
 const isPosition = (value: unknown): value is number => Number.isInteger(value) && (value as number) >= 0;
 const isCount = isPosition;
+const isRank = (value: unknown): value is number => Number.isInteger(value) && (value as number) >= 1;
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -81,9 +99,10 @@ function invalid(): never {
   throw new Error("invalid_lobby_payload");
 }
 
-// Stage 3 fields (hasTask, task, currentTask, stats) may be absent while the
-// database still runs the Stage 2 get_lobby(): the app then works without
-// tasks instead of failing. Present fields must still have the right type.
+// Stage 3 fields (hasTask, task, currentTask, stats) and Stage 4 fields (score,
+// place, finishOrder, cooldownSeconds) may be absent while the database still
+// runs an older get_lobby(): the app then works without them instead of
+// failing. Present fields must still have the right type.
 function parseRoutePoint(point: unknown, index: number): RoutePoint {
   if (
     !isObject(point) ||
@@ -126,7 +145,15 @@ function parseCurrentTask(value: unknown): CurrentTask | null {
     options = [...value.options];
   }
   if ((value.type === "single_choice") !== (options !== null)) invalid();
-  return { id: value.id, checkpointPosition: value.checkpointPosition, type: value.type, question: value.question, options };
+  if (value.cooldownSeconds !== undefined && !isCount(value.cooldownSeconds)) invalid();
+  return {
+    id: value.id,
+    checkpointPosition: value.checkpointPosition,
+    type: value.type,
+    question: value.question,
+    options,
+    cooldownSeconds: isCount(value.cooldownSeconds) ? value.cooldownSeconds : 0,
+  };
 }
 
 function parseStats(value: unknown): TeamStats | null {
@@ -168,7 +195,10 @@ export function parseLobby(data: unknown): LobbySnapshot {
       !isString(team.id) ||
       !isString(team.name) ||
       typeof team.memberCount !== "number" ||
-      !isPosition(team.position)
+      !isPosition(team.position) ||
+      (team.score !== undefined && !isCount(team.score)) ||
+      (team.place !== undefined && team.place !== null && !isRank(team.place)) ||
+      (team.finishOrder !== undefined && team.finishOrder !== null && !isRank(team.finishOrder))
     ) {
       invalid();
     }
@@ -177,6 +207,9 @@ export function parseLobby(data: unknown): LobbySnapshot {
       name: team.name,
       memberCount: team.memberCount,
       position: team.position,
+      score: isCount(team.score) ? team.score : 0,
+      place: isRank(team.place) ? team.place : null,
+      finishOrder: isRank(team.finishOrder) ? team.finishOrder : null,
       stats: parseStats(team.stats),
     };
   });

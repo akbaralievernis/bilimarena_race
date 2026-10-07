@@ -101,8 +101,8 @@ describe("parseLobby with tasks", () => {
       { position: 1, title: "Дроби", type: "checkpoint", hasTask: true, task: null },
       { position: 2, title: "Финиш", type: "finish", hasTask: false, task: null },
     ],
-    currentTask: { id: "k", checkpointPosition: 1, type: "single_choice", question: "?", options: ["1", "2"] },
-    teams: [{ id: "t", name: "Альфа", memberCount: 1, position: 0, stats: null }],
+    currentTask: { id: "k", checkpointPosition: 1, type: "single_choice", question: "?", options: ["1", "2"], cooldownSeconds: 0 },
+    teams: [{ id: "t", name: "Альфа", memberCount: 1, position: 0, score: 0, place: 1, finishOrder: null, stats: null }],
     participants: [],
     studentCount: 1,
   };
