@@ -131,6 +131,10 @@ describe.skipIf(!isConfigured)("Supabase integration: checkpoint tasks", () => {
   });
 
   it("a wrong answer pauses the team for 10 seconds", async () => {
+    // Independent of how long the previous test took: start a fresh pause if it is over.
+    if ((await lobbyFor(alphaStudent)).currentTask!.cooldownSeconds === 0) {
+      expect(await submit(alphaStudent, alpha, taskIds[0], "2")).toMatchObject({ correct: false, cooldownSeconds: 10 });
+    }
     expect(await rpcError(alphaStudent, "submit_answer", { p_team_id: alpha, p_task_id: taskIds[0], p_answer: "1" })).toBe(
       "answer_cooldown",
     );
@@ -171,11 +175,12 @@ describe.skipIf(!isConfigured)("Supabase integration: checkpoint tasks", () => {
     });
     const teams = (await lobbyFor(teacher!)).teams;
     const alphaRow = teams.find((team) => team.id === alpha)!;
-    expect(alphaRow.stats).toMatchObject({ correct: 2, wrong: 1 });
+    expect(alphaRow.stats).toMatchObject({ correct: 2 });
+    expect(alphaRow.stats!.wrong).toBeGreaterThanOrEqual(1);
     expect(alphaRow.stats!.finishedAt).not.toBeNull();
     // First at FINISH: place 1, +100 finish bonus on top of two answers minus 20.
     expect(alphaRow).toMatchObject({ place: 1, finishOrder: 1 });
-    expect(alphaRow.score).toBeGreaterThanOrEqual(100 + 100 - 20 + 100);
+    expect(alphaRow.score).toBeGreaterThanOrEqual(100 + 100 - 20 * alphaRow.stats!.wrong + 100);
     // Students see the same leaderboard, without the statistics.
     const seenByBeta = (await lobbyFor(betaStudent)).teams.find((team) => team.id === alpha)!;
     expect(seenByBeta).toMatchObject({ score: alphaRow.score, place: 1, stats: null });
