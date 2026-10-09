@@ -14,5 +14,7 @@ export default defineConfig(({ mode }) => ({
     env: loadEnv(mode, process.cwd(), ""),
     fileParallelism: false,
     hookTimeout: 120_000,
+    // The metrics table is the point of the run: print it even when the test passes.
+    silent: false,
   },
 }));
