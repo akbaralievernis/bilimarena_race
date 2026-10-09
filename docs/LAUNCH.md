@@ -31,9 +31,10 @@ Realtime (класс из 40 учеников — 41 подключение), 10
    - `NEXT_PUBLIC_SUPABASE_URL` = `https://wiempvgkqlgfgtwpqgdc.supabase.co`
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` = публичный ключ `sb_publishable_…`
      (тот же, что в `.env.local`). **Секретный ключ `sb_secret_…` не добавляйте никогда.**
-3. **Deploy**. Потом **Settings → Functions → Function Region** — регион рядом с регионом
-   Supabase (Frankfurt `eu-central-1` → `fra1`, Singapore → `sin1`, Mumbai → `bom1`) и
-   **Redeploy**. Каждая страница делает 1–3 запроса к базе; если сервер и база на разных
+3. **Deploy**. Регион функций задан в `vercel.json` (`"regions"`) рядом с регионом
+   Supabase: у рабочего проекта это Seoul `ap-northeast-2` → **`icn1`**. Для другого
+   проекта Supabase поменяйте его (Frankfurt `eu-central-1` → `fra1`, Singapore → `sin1`,
+   Mumbai → `bom1`). Каждая страница делает 1–3 запроса к базе; если сервер и база на разных
    континентах, это +0,3–0,5 с к каждой странице.
 4. Впишите адрес из Vercel (`https://….vercel.app`) в Supabase → URL Configuration (шаг 1).
 5. Откройте `https://<домен>/status` — все пункты должны быть зелёными.
