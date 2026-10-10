@@ -132,7 +132,21 @@ export async function listen(client: SupabaseClient, raceId: string) {
     });
   }
 
-  return { channel, status, nextEvent, waitForTable };
+  /**
+   * A freshly joined private channel on the free tier sometimes misses the
+   * first few seconds of messages. Before a test relies on a signal, cause a
+   * harmless change (`poke`) until one actually arrives, at most three times.
+   */
+  async function warmUp(table: string, poke: () => Promise<unknown>) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const seen = waitForTable(table, 5_000);
+      await poke();
+      if (await seen) return true;
+    }
+    return false;
+  }
+
+  return { channel, status, nextEvent, waitForTable, warmUp };
 }
 
 /** Closes a reused teacher's race even after a failed test, then signs everyone out locally. */

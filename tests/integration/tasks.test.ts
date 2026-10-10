@@ -119,6 +119,9 @@ describe.skipIf(!isConfigured)("Supabase integration: checkpoint tasks", () => {
   it("a wrong answer keeps the team in place and reaches the teacher over Realtime", async () => {
     const subscription = await listen(betaStudent, raceId!);
     expect(subscription.status).toBe("SUBSCRIBED");
+    // Renaming a team to its own name changes nothing but sends a "teams" signal.
+    const live = await subscription.warmUp("teams", () => rpc(teacher!, "rename_team", { p_team_id: beta, p_name: "Бета" }));
+    expect(live).toBe(true);
     const signal = subscription.waitForTable("task_submissions");
     expect(await submit(alphaStudent, alpha, taskIds[0], "0")).toMatchObject({
       correct: false,
