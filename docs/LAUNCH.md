@@ -13,6 +13,7 @@ Dashboard проекта → разделы ниже.
 | **Authentication → Rate Limits** | «Anonymous sign-ins» — поднять с 30 до **300 в час** | В школе все телефоны выходят в интернет с **одного IP**. При 30 в час 31-й ученик не войдёт. Ученик входит прямо из браузера, поэтому лимит считается по IP школы |
 | **Authentication → Sign In / Providers** | Anonymous Sign-Ins — **включены** | Ученики входят без регистрации |
 | **Authentication → URL Configuration** | Site URL: `https://<ваш-домен>`; Redirect URLs: `https://<ваш-домен>/**` | Ссылка из письма подтверждения ведёт на сайт, а не на localhost |
+| **Authentication → Email Templates → Confirm signup** | Вставить шаблон из [`email-templates/confirm-signup.html`](email-templates/confirm-signup.html) и тему из его первой строки | Письмо учителю на кыргызском и русском вместо стандартного английского |
 | **SQL Editor** | Миграции этапов 1–5 применены (проверяет `/status`) | Без них сайт пишет «база не настроена» |
 | **Settings → General** | Запомните **Region** проекта | Понадобится для Vercel (шаг 2) |
 

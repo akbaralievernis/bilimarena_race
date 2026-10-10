@@ -1,0 +1,23 @@
+<!-- Supabase → Authentication → Email Templates → Confirm signup.
+     Subject: Bilim Arena Race — почтаңызды ырастаңыз / подтвердите почту
+     {{ .ConfirmationURL }} is filled in by Supabase. -->
+<div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; color: #202b46; line-height: 1.5">
+  <h2 style="margin: 0 0 16px">Bilim Arena Race</h2>
+
+  <p lang="ky">Саламатсызбы! Мугалимдин аккаунтун түзүү үчүн электрондук почтаңызды ырастаңыз:</p>
+  <p lang="ru">Здравствуйте! Чтобы создать аккаунт учителя, подтвердите адрес электронной почты:</p>
+
+  <p style="margin: 24px 0">
+    <a href="{{ .ConfirmationURL }}"
+       style="display: inline-block; background: #635bff; color: #ffffff; padding: 14px 24px; border-radius: 14px; font-weight: bold; text-decoration: none">
+      Ырастоо · Подтвердить
+    </a>
+  </p>
+
+  <p lang="ky" style="font-size: 14px; color: #5a6480">
+    Шилтемени катталган браузерде ачыңыз. Эгер сиз катталбаган болсоңуз, бул катты этибарга албаңыз.
+  </p>
+  <p lang="ru" style="font-size: 14px; color: #5a6480">
+    Откройте ссылку в том же браузере, где регистрировались. Если вы не регистрировались, просто проигнорируйте это письмо.
+  </p>
+</div>
