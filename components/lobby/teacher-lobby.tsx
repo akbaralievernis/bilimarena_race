@@ -10,6 +10,7 @@ import { RaceStatusControl } from "./race-status-control";
 import { RoomCode } from "./room-code";
 import { StatusBadge } from "./status-badge";
 import { TeamsPanel } from "./teams-panel";
+import { TimeLimitControl } from "./time-limit-control";
 import type { ConnectionState } from "./use-lobby";
 import { useActionRunner } from "./use-action-runner";
 
@@ -65,7 +66,8 @@ export function TeacherLobby({
           <RoomCode code={race.code} />
         </div>
 
-        <div className="mt-6 border-t border-line pt-6">
+        <div className="mt-6 space-y-6 border-t border-line pt-6">
+          {(race.status === "draft" || race.status === "lobby") && <TimeLimitControl race={race} runner={runner} />}
           <RaceStatusControl race={race} runner={runner} hint={STATUS_HINTS[race.status]} />
         </div>
       </section>
@@ -75,9 +77,14 @@ export function TeacherLobby({
           <h2 id="route-heading" className="font-display text-lg font-bold tracking-tight">
             Маршрут
           </h2>
-          <ButtonLink href={`/race/${race.id}`} variant="secondary" size="sm">
-            Карта гонки
-          </ButtonLink>
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href={`/race/${race.id}/screen`} target="_blank" variant="secondary" size="sm">
+              Экран для проектора
+            </ButtonLink>
+            <ButtonLink href={`/race/${race.id}`} variant="secondary" size="sm">
+              Карта гонки
+            </ButtonLink>
+          </div>
         </div>
         <div className="mt-4">
           <RouteStrip route={lobby.route} />

@@ -102,7 +102,9 @@ describe("parseLobby", () => {
   };
 
   it("accepts the get_lobby() payload", () => {
-    expect(parseLobby(valid)).toEqual(valid);
+    // A payload without the Stage 7 clock reads as "no timer".
+    const noTimer = { timeLimitSeconds: null, endsAt: null, remainingSeconds: null };
+    expect(parseLobby(valid)).toEqual({ ...valid, race: { ...valid.race, ...noTimer } });
   });
 
   it("drops unexpected fields instead of passing them to the UI", () => {

@@ -13,8 +13,10 @@ import { teamColor, type LobbySnapshot, type RoutePoint } from "@/lib/race/lobby
 import { checkpointCount, pointLabel, teamProgress } from "@/lib/race/route";
 import { SCORING, formatPoints, pointsWord, rulesSummary } from "@/lib/race/scoring";
 import { Leaderboard } from "./leaderboard";
+import { RaceClock } from "./race-clock";
 import { RouteMap } from "./route-map";
 import { TaskCard } from "./task-card";
+import { useRaceClock } from "./use-race-clock";
 
 type Feedback = { tone: "success" | "error" | "info"; text: string };
 
@@ -53,6 +55,7 @@ export function StudentRace({
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   const { race, route, teams, viewer, currentTask } = lobby;
+  const secondsLeft = useRaceClock(race, refresh);
   const team = teams.find((candidate) => candidate.id === viewer.teamId) ?? null;
   const progress = team ? teamProgress(route, team.position) : null;
   const color = teamColor(teams, viewer.teamId);
@@ -113,8 +116,9 @@ export function StudentRace({
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <section className="rounded-card bg-surface p-6 shadow-card ring-1 ring-line sm:p-8">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <StatusBadge status={race.status} />
+            {secondsLeft !== null && <RaceClock seconds={secondsLeft} />}
             <ConnectionPill state={connection} />
           </div>
           <p className="mt-5 text-sm font-bold text-teal-strong">Bilim Arena Race</p>

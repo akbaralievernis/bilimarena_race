@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { formatRoomCode } from "@/lib/race/validation";
+import { JoinQr } from "./join-qr";
 
 type Copied = "code" | "link" | null;
 
@@ -14,7 +15,7 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
-/** Big, dictation-friendly room code with copy actions for the teacher. */
+/** QR code and a big, dictation-friendly room code with copy actions for the teacher. */
 export function RoomCode({ code }: { code: string }) {
   const [copied, setCopied] = useState<Copied>(null);
   const [failed, setFailed] = useState(false);
@@ -29,7 +30,11 @@ export function RoomCode({ code }: { code: string }) {
 
   return (
     <div className="rounded-2xl bg-brand-soft p-5 text-center sm:p-6 lg:min-w-72">
-      <p className="text-xs font-extrabold tracking-widest text-brand-strong uppercase">Код комнаты</p>
+      <div className="flex justify-center">
+        <JoinQr code={code} />
+      </div>
+      <p className="mt-2 text-xs text-ink-muted">Наведите камеру телефона — код подставится сам</p>
+      <p className="mt-4 text-xs font-extrabold tracking-widest text-brand-strong uppercase">Код комнаты</p>
       <p
         className="mt-2 font-mono text-4xl font-bold tracking-[0.2em] text-ink sm:text-5xl"
         aria-label={`Код комнаты: ${code.split("").join(" ")}`}

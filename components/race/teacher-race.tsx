@@ -2,6 +2,7 @@
 
 import { ConnectionBanner, ConnectionPill } from "@/components/lobby/connection-status";
 import { RaceStatusControl } from "@/components/lobby/race-status-control";
+import { TimeLimitControl } from "@/components/lobby/time-limit-control";
 import { StatusBadge } from "@/components/lobby/status-badge";
 import { useActionRunner } from "@/components/lobby/use-action-runner";
 import type { ConnectionState } from "@/components/lobby/use-lobby";
@@ -11,7 +12,9 @@ import { checkpointCount, pointName, teamProgress } from "@/lib/race/route";
 import { accuracy, rulesSummary, standings } from "@/lib/race/scoring";
 import type { RaceStatus } from "@/lib/race/status";
 import { Leaderboard } from "./leaderboard";
+import { RaceClock } from "./race-clock";
 import { RouteMap } from "./route-map";
+import { useRaceClock } from "./use-race-clock";
 
 /** Local time of the viewer; the server may render in another time zone. */
 function FinishTime({ iso }: { iso: string }) {
@@ -40,6 +43,7 @@ export function TeacherRace({
 }) {
   const runner = useActionRunner(refresh);
   const { race, route, teams } = lobby;
+  const secondsLeft = useRaceClock(race, refresh);
   const total = checkpointCount(route);
 
   return (
@@ -51,8 +55,12 @@ export function TeacherRace({
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={race.status} />
             <ConnectionPill state={connection} />
+            {secondsLeft !== null && <RaceClock seconds={secondsLeft} />}
           </div>
           <div className="flex flex-wrap gap-2">
+            <ButtonLink href={`/race/${race.id}/screen`} target="_blank" variant="secondary" size="sm">
+              Экран для проектора
+            </ButtonLink>
             <ButtonLink href={`/race/${race.id}/results`} variant="secondary" size="sm">
               Отчёт
             </ButtonLink>
@@ -62,8 +70,9 @@ export function TeacherRace({
           </div>
         </div>
         <h1 className="mt-3 font-display text-2xl font-bold tracking-tight break-words sm:text-3xl">{race.title}</h1>
-        <div className="mt-6 border-t border-line pt-6">
+        <div className="mt-6 space-y-4 border-t border-line pt-6">
           <RaceStatusControl race={race} runner={runner} hint={STATUS_HINTS[race.status]} />
+          <TimeLimitControl race={race} runner={runner} />
         </div>
       </section>
 

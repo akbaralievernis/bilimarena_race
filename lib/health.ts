@@ -23,6 +23,7 @@ export const SCHEMA_MARKERS = [
   { stage: 3, kind: "rpc", name: "submit_answer", args: { p_team_id: null, p_task_id: null, p_answer: "" } },
   { stage: 4, kind: "column", name: "task_submissions.points" },
   { stage: 5, kind: "rpc", name: "get_race_report", args: { p_race_id: null } },
+  { stage: 7, kind: "rpc", name: "set_race_time_limit", args: { p_race_id: null, p_seconds: null } },
 ] as const;
 
 const TIMEOUT_MS = 6_000;
@@ -131,7 +132,7 @@ export async function checkHealth(): Promise<HealthReport> {
   const unknown = states.includes("unknown");
   checks.push({
     id: "schema",
-    label: "Миграции базы (этапы 1–5)",
+    label: "Миграции базы (этапы 1–7)",
     ok: missing.length === 0 && !unknown,
     detail:
       missing.length > 0

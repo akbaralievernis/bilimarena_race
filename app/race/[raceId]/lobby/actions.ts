@@ -3,6 +3,7 @@
 import { SETUP_REQUIRED_MESSAGE } from "@/lib/actions";
 import { isSupabaseConfigured } from "@/lib/env";
 import { raceErrorMessage } from "@/lib/race/errors";
+import { TIME_LIMIT_MAX_SECONDS, TIME_LIMIT_MIN_SECONDS } from "@/lib/race/timer";
 import { isUuid, validateTeamName } from "@/lib/race/validation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -63,4 +64,15 @@ export async function startRaceAction(raceId: unknown): Promise<LobbyActionResul
 export async function finishRaceAction(raceId: unknown): Promise<LobbyActionResult> {
   if (!isId(raceId)) return INVALID_REQUEST;
   return callRpc("finish_race", { p_race_id: raceId });
+}
+
+/** Stage 7: race time limit in seconds, or null for none. */
+export async function setTimeLimitAction(raceId: unknown, seconds: unknown): Promise<LobbyActionResult> {
+  const valid =
+    seconds === null ||
+    (Number.isInteger(seconds) &&
+      (seconds as number) >= TIME_LIMIT_MIN_SECONDS &&
+      (seconds as number) <= TIME_LIMIT_MAX_SECONDS);
+  if (!isId(raceId) || !valid) return INVALID_REQUEST;
+  return callRpc("set_race_time_limit", { p_race_id: raceId, p_seconds: seconds });
 }

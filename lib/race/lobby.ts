@@ -12,6 +12,12 @@ export type LobbyRace = {
   status: RaceStatus;
   startedAt: string | null;
   finishedAt: string | null;
+  /** Stage 7 timer: the teacher's limit, or null for a race without one. */
+  timeLimitSeconds: number | null;
+  /** Planned end, fixed at the start (null before the start or without a limit). */
+  endsAt: string | null;
+  /** Seconds left by the server's clock at the moment of the snapshot; null unless running with a limit. */
+  remainingSeconds: number | null;
 };
 
 export type LobbyViewer = {
@@ -177,6 +183,10 @@ export function parseLobby(data: unknown): LobbySnapshot {
     !isRaceStatus(race.status) ||
     !isNullableString(race.startedAt) ||
     !isNullableString(race.finishedAt) ||
+    // Stage 7 fields: absent on an older database, then "no timer".
+    (race.timeLimitSeconds !== undefined && race.timeLimitSeconds !== null && !isRank(race.timeLimitSeconds)) ||
+    (race.endsAt !== undefined && !isNullableString(race.endsAt)) ||
+    (race.remainingSeconds !== undefined && race.remainingSeconds !== null && !isCount(race.remainingSeconds)) ||
     (viewer.role !== "teacher" && viewer.role !== "student") ||
     !isNullableString(viewer.participantId) ||
     !isNullableString(viewer.displayName) ||
@@ -235,6 +245,9 @@ export function parseLobby(data: unknown): LobbySnapshot {
       status: race.status,
       startedAt: race.startedAt,
       finishedAt: race.finishedAt,
+      timeLimitSeconds: isRank(race.timeLimitSeconds) ? race.timeLimitSeconds : null,
+      endsAt: isString(race.endsAt) ? race.endsAt : null,
+      remainingSeconds: isCount(race.remainingSeconds) ? race.remainingSeconds : null,
     },
     viewer: {
       role: viewer.role,

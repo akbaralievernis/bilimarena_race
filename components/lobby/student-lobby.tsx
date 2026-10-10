@@ -1,6 +1,7 @@
 import { RouteStrip } from "@/components/race/route-strip";
 import { ButtonLink } from "@/components/ui/button-link";
 import { teamColor, type LobbySnapshot } from "@/lib/race/lobby";
+import { minutesLabel } from "@/lib/race/timer";
 import { formatRoomCode } from "@/lib/race/validation";
 import { ConnectionBanner, ConnectionPill } from "./connection-status";
 import { StatusBadge } from "./status-badge";
@@ -37,6 +38,11 @@ export function StudentLobby({ lobby, connection }: { lobby: LobbySnapshot; conn
         {race.description && <p className="mt-2 whitespace-pre-line text-ink-muted">{race.description}</p>}
         <p className="mt-3 text-sm text-ink-muted">
           Код комнаты: <span className="font-mono font-bold tracking-wider text-ink">{formatRoomCode(race.code)}</span>
+          {race.timeLimitSeconds !== null && (
+            <>
+              {" · "}время гонки: <span className="font-bold text-ink">{minutesLabel(race.timeLimitSeconds)}</span>
+            </>
+          )}
         </p>
 
         <div className="mt-8 rounded-2xl bg-canvas px-5 py-4 ring-1 ring-line">
