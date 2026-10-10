@@ -1,3 +1,4 @@
+import { ru, type Messages } from "@/lib/i18n/messages/ru";
 import type { LobbyTeam, TeamStats } from "@/lib/race/lobby";
 
 /*
@@ -46,22 +47,18 @@ export function formatPoints(points: number): string {
   return "0";
 }
 
-/** "очко", "очка", "очков" for a number. */
-export function pointsWord(points: number): string {
-  const n = Math.abs(points) % 100;
-  const last = n % 10;
-  if (n >= 11 && n <= 14) return "очков";
-  if (last === 1) return "очко";
-  if (last >= 2 && last <= 4) return "очка";
-  return "очков";
+/** The word for points after a number: "очков" / "упай". */
+export function pointsWord(points: number, m: Messages = ru): string {
+  return m.scoring.pointsWord(points);
 }
 
 /** Rules in one line for students and teachers. */
-export function rulesSummary(): string {
-  const [first, second, third] = SCORING.finishBonus;
-  return (
-    `Верный ответ — ${SCORING.correct} очков и до ${SCORING.speedBonusMax} за скорость. ` +
-    `Неверный — ${formatPoints(SCORING.wrong)} и пауза ${SCORING.pauseSeconds} секунд. ` +
-    `Финиш: +${first}, +${second} и +${third} первым трём командам.`
-  );
+export function rulesSummary(m: Messages = ru): string {
+  return m.scoring.rules({
+    correct: SCORING.correct,
+    speedBonusMax: SCORING.speedBonusMax,
+    wrong: formatPoints(SCORING.wrong),
+    pauseSeconds: SCORING.pauseSeconds,
+    bonus: SCORING.finishBonus,
+  });
 }

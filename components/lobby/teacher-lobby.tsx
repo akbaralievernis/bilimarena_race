@@ -1,9 +1,9 @@
 "use client";
 
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { RouteStrip } from "@/components/race/route-strip";
 import { ButtonLink } from "@/components/ui/button-link";
 import type { LobbySnapshot } from "@/lib/race/lobby";
-import type { RaceStatus } from "@/lib/race/status";
 import { ConnectionBanner, ConnectionPill } from "./connection-status";
 import { ParticipantsPanel } from "./participants-panel";
 import { RaceStatusControl } from "./race-status-control";
@@ -13,13 +13,6 @@ import { TeamsPanel } from "./teams-panel";
 import { TimeLimitControl } from "./time-limit-control";
 import type { ConnectionState } from "./use-lobby";
 import { useActionRunner } from "./use-action-runner";
-
-const STATUS_HINTS: Record<RaceStatus, string> = {
-  draft: "Гонка ещё не открыта для подключения.",
-  lobby: "Когда все подключатся и команды будут готовы — начинайте гонку.",
-  running: "Гонка идёт — положение команд видно на карте гонки.",
-  finished: "Гонка завершена. Изменения больше недоступны.",
-};
 
 export function TeacherLobby({
   lobby,
@@ -31,6 +24,7 @@ export function TeacherLobby({
   refresh: () => Promise<void>;
 }) {
   const runner = useActionRunner(refresh);
+  const { m } = useI18n();
   const { race } = lobby;
   const locked = race.status === "finished";
   const unassigned = lobby.participants.filter((participant) => !participant.teamId).length;
@@ -52,9 +46,9 @@ export function TeacherLobby({
             )}
             <dl className="mt-6 grid grid-cols-3 gap-3 sm:max-w-md">
               {[
-                ["Участники", lobby.studentCount],
-                ["Команды", lobby.teams.length],
-                ["Без команды", unassigned],
+                [m.lobby.participants, lobby.studentCount],
+                [m.lobby.teams, lobby.teams.length],
+                [m.lobby.unassigned, unassigned],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-2xl bg-canvas px-3 py-3 ring-1 ring-line">
                   <dt className="text-xs font-bold text-ink-muted">{label}</dt>
@@ -68,21 +62,21 @@ export function TeacherLobby({
 
         <div className="mt-6 space-y-6 border-t border-line pt-6">
           {(race.status === "draft" || race.status === "lobby") && <TimeLimitControl race={race} runner={runner} />}
-          <RaceStatusControl race={race} runner={runner} hint={STATUS_HINTS[race.status]} />
+          <RaceStatusControl race={race} runner={runner} hint={m.lobby.teacherHints[race.status]} />
         </div>
       </section>
 
       <section aria-labelledby="route-heading" className="rounded-card bg-surface p-5 shadow-card ring-1 ring-line sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 id="route-heading" className="font-display text-lg font-bold tracking-tight">
-            Маршрут
+            {m.lobby.route}
           </h2>
           <div className="flex flex-wrap gap-2">
             <ButtonLink href={`/race/${race.id}/screen`} target="_blank" variant="secondary" size="sm">
-              Экран для проектора
+              {m.lobby.projector}
             </ButtonLink>
             <ButtonLink href={`/race/${race.id}`} variant="secondary" size="sm">
-              Карта гонки
+              {m.lobby.raceMap}
             </ButtonLink>
           </div>
         </div>

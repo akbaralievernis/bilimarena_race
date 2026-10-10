@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { fieldError, useFormAction } from "@/components/forms/use-form-action";
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/field";
@@ -11,14 +12,15 @@ type Mode = "sign-in" | "sign-up";
 
 export function LoginForm({ next, initialError }: { next: string; initialError?: string }) {
   const [mode, setMode] = useState<Mode>("sign-in");
+  const { m } = useI18n();
 
   return (
     <div>
-      <div role="group" aria-label="Вход или регистрация" className="grid grid-cols-2 gap-1 rounded-2xl bg-canvas p-1 ring-1 ring-line">
+      <div role="group" aria-label={m.login.modes} className="grid grid-cols-2 gap-1 rounded-2xl bg-canvas p-1 ring-1 ring-line">
         {(
           [
-            ["sign-in", "Вход"],
-            ["sign-up", "Регистрация"],
+            ["sign-in", m.login.signIn],
+            ["sign-up", m.login.signUp],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -45,6 +47,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
 
 function SignInForm({ next }: { next: string }) {
   const [state, formAction, pending] = useFormAction(signInAction);
+  const { m } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const locked = pending || (state.status === "success" && state.redirecting);
@@ -56,7 +59,7 @@ function SignInForm({ next }: { next: string }) {
         id="sign-in-email"
         name="email"
         type="email"
-        label="Email"
+        label={m.login.email}
         autoComplete="email"
         value={email}
         onChange={(event) => setEmail(event.target.value)}
@@ -68,7 +71,7 @@ function SignInForm({ next }: { next: string }) {
         id="sign-in-password"
         name="password"
         type="password"
-        label="Пароль"
+        label={m.login.password}
         autoComplete="current-password"
         value={password}
         onChange={(event) => setPassword(event.target.value)}
@@ -77,8 +80,8 @@ function SignInForm({ next }: { next: string }) {
         required
       />
       {state.status === "error" && state.message && <Alert>{state.message}</Alert>}
-      <Button type="submit" className="w-full" pending={locked} pendingLabel={pending ? "Вход…" : "Переходим…"}>
-        Войти
+      <Button type="submit" className="w-full" pending={locked} pendingLabel={pending ? m.login.signingIn : m.login.redirecting}>
+        {m.login.submitSignIn}
       </Button>
     </form>
   );
@@ -86,6 +89,7 @@ function SignInForm({ next }: { next: string }) {
 
 function SignUpForm({ next }: { next: string }) {
   const [state, formAction, pending] = useFormAction(signUpAction);
+  const { m } = useI18n();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -105,8 +109,8 @@ function SignUpForm({ next }: { next: string }) {
       <TextField
         id="sign-up-name"
         name="name"
-        label="Имя"
-        hint="Его увидят студенты в лобби."
+        label={m.login.name}
+        hint={m.login.nameHint}
         autoComplete="name"
         maxLength={40}
         value={name}
@@ -119,7 +123,7 @@ function SignUpForm({ next }: { next: string }) {
         id="sign-up-email"
         name="email"
         type="email"
-        label="Email"
+        label={m.login.email}
         autoComplete="email"
         value={email}
         onChange={(event) => setEmail(event.target.value)}
@@ -131,8 +135,8 @@ function SignUpForm({ next }: { next: string }) {
         id="sign-up-password"
         name="password"
         type="password"
-        label="Пароль"
-        hint="Минимум 8 символов."
+        label={m.login.password}
+        hint={m.login.passwordHint}
         autoComplete="new-password"
         value={password}
         onChange={(event) => setPassword(event.target.value)}
@@ -145,9 +149,9 @@ function SignUpForm({ next }: { next: string }) {
         type="submit"
         className="w-full"
         pending={locked}
-        pendingLabel={pending ? "Создание аккаунта…" : "Переходим…"}
+        pendingLabel={pending ? m.login.signingUp : m.login.redirecting}
       >
-        Создать аккаунт учителя
+        {m.login.submitSignUp}
       </Button>
     </form>
   );

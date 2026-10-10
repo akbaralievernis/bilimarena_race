@@ -2,7 +2,8 @@
 
 import { useCallback, useRef, useState } from "react";
 import type { LobbyActionResult } from "@/app/race/[raceId]/lobby/actions";
-import { NETWORK_ERROR_MESSAGE, UNKNOWN_ERROR_MESSAGE, isNetworkError } from "@/lib/race/errors";
+import { useI18n } from "@/components/i18n/i18n-provider";
+import { clientErrorMessage } from "@/lib/race/errors";
 
 /**
  * Runs lobby Server Actions keyed by what they touch ("create-team",
@@ -12,6 +13,7 @@ import { NETWORK_ERROR_MESSAGE, UNKNOWN_ERROR_MESSAGE, isNetworkError } from "@/
 export function useActionRunner(refresh: () => Promise<void>) {
   // The ref is the lock (synchronous); state only drives rendering.
   const lock = useRef(new Set<string>());
+  const { m } = useI18n();
   const [pending, setPending] = useState<ReadonlySet<string>>(() => new Set());
   const [errors, setErrors] = useState<Readonly<Record<string, string>>>({});
 
@@ -39,15 +41,14 @@ export function useActionRunner(refresh: () => Promise<void>) {
         await refresh();
         return true;
       } catch (error) {
-        const offline = !navigator.onLine;
-        setError(key, offline || isNetworkError(error) ? NETWORK_ERROR_MESSAGE : UNKNOWN_ERROR_MESSAGE);
+        setError(key, clientErrorMessage(error, m));
         return false;
       } finally {
         lock.current.delete(key);
         setPending(new Set(lock.current));
       }
     },
-    [refresh, setError],
+    [refresh, setError, m],
   );
 
   return {

@@ -1,3 +1,4 @@
+import { ru, type Messages } from "@/lib/i18n/messages/ru";
 import type { LobbyTeam, RoutePoint } from "@/lib/race/lobby";
 
 /*
@@ -5,16 +6,16 @@ import type { LobbyTeam, RoutePoint } from "@/lib/race/lobby";
  * (advance_team); these helpers only describe the current snapshot.
  */
 
-/** "Старт", "Чекпоинт 2", "Финиш". */
-export function pointLabel(point: RoutePoint): string {
-  if (point.type === "start") return "Старт";
-  if (point.type === "finish") return "Финиш";
-  return `Чекпоинт ${point.position}`;
+/** "Старт", "Чекпоинт 2" / "2-чекпоинт", "Финиш". */
+export function pointLabel(point: RoutePoint, m: Messages = ru): string {
+  if (point.type === "start") return m.common.start;
+  if (point.type === "finish") return m.common.finish;
+  return m.common.checkpoint(point.position);
 }
 
 /** Label plus the teacher's title for checkpoints: "Чекпоинт 2 · Проценты". */
-export function pointName(point: RoutePoint): string {
-  return point.type === "checkpoint" ? `${pointLabel(point)} · ${point.title}` : pointLabel(point);
+export function pointName(point: RoutePoint, m: Messages = ru): string {
+  return point.type === "checkpoint" ? `${pointLabel(point, m)} · ${point.title}` : pointLabel(point, m);
 }
 
 export type TeamProgress = {

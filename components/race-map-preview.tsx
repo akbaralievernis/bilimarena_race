@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import type { Messages } from "@/lib/i18n/config";
 
 /*
  * Decorative race map for the landing page. Pure SVG + CSS animation
@@ -22,17 +23,16 @@ const STOPS = {
 
 type Point = { x: number; y: number };
 
+// Names come from the dictionary (m.preview.teams), in this order.
 const TEAMS: {
-  letter: string;
-  name: string;
   color: string;
   points: number;
   at: Point;
   lap: CSSProperties;
 }[] = [
-  { letter: "Б", name: "Барс", color: "#21B8A6", points: 240, at: STOPS.bonus, lap: { animationDuration: "11s", animationDelay: "-7.7s" } },
-  { letter: "А", name: "Альфа", color: "#635BFF", points: 215, at: STOPS.code, lap: { animationDuration: "13s", animationDelay: "-4.2s" } },
-  { letter: "К", name: "Комета", color: "#FFB020", points: 190, at: STOPS.start, lap: { animationDuration: "15s", animationDelay: "0s" } },
+  { color: "#21B8A6", points: 240, at: STOPS.bonus, lap: { animationDuration: "11s", animationDelay: "-7.7s" } },
+  { color: "#635BFF", points: 215, at: STOPS.code, lap: { animationDuration: "13s", animationDelay: "-4.2s" } },
+  { color: "#FFB020", points: 190, at: STOPS.start, lap: { animationDuration: "15s", animationDelay: "0s" } },
 ];
 
 function Checkpoint({ at, ring, children }: { at: Point; ring: string; children: ReactNode }) {
@@ -59,7 +59,7 @@ function Glyph({ children, color, size }: { children: string; color: string; siz
   );
 }
 
-function TeamToken({ letter, color, at, lap }: (typeof TEAMS)[number]) {
+function TeamToken({ letter, color, at, lap }: (typeof TEAMS)[number] & { letter: string }) {
   return (
     <g className="race-token" style={lap} transform={`translate(${at.x} ${at.y})`}>
       <path
@@ -83,13 +83,14 @@ function TeamToken({ letter, color, at, lap }: (typeof TEAMS)[number]) {
   );
 }
 
-export function RaceMapPreview() {
+export function RaceMapPreview({ m }: { m: Messages }) {
+  const teams = TEAMS.map((team, index) => {
+    const name = m.preview.teams[index];
+    return { ...team, name, letter: name.charAt(0) };
+  });
   return (
     <figure className="relative mx-auto w-full max-w-xl rounded-card bg-surface p-3 shadow-lift ring-1 ring-line sm:p-4 lg:max-w-none">
-      <figcaption className="sr-only">
-        Пример карты гонки: три команды движутся от старта к финишу через испытания — вопрос,
-        программирование, скоростную печать и бонус.
-      </figcaption>
+      <figcaption className="sr-only">{m.preview.description}</figcaption>
 
       <svg viewBox="0 0 400 340" aria-hidden="true" className="block h-auto w-full rounded-2xl">
         <defs>
@@ -123,7 +124,7 @@ export function RaceMapPreview() {
         <g transform={`translate(${STOPS.start.x} ${STOPS.start.y})`}>
           <circle r="11" fill="#E3F7F4" stroke="#21B8A6" strokeWidth="3" />
           <text y="30" textAnchor="middle" fill="#5A6480" fontSize="10" fontWeight="800" letterSpacing="1.5" className="font-display">
-            СТАРТ
+            {m.preview.start}
           </text>
         </g>
 
@@ -151,12 +152,12 @@ export function RaceMapPreview() {
           <rect x="0" y="0" width="30" height="20" fill="#fff" stroke="#202B46" strokeWidth="1.5" />
           <path d="M0 0h10v10H0zM20 0h10v10H20zM10 10h10v10H10z" fill="#202B46" />
           <text x="0" y="62" textAnchor="middle" fill="#5A6480" fontSize="10" fontWeight="800" letterSpacing="1.5" className="font-display">
-            ФИНИШ
+            {m.preview.finish}
           </text>
         </g>
 
         <g filter="url(#race-map-shadow)">
-          {TEAMS.map((team) => (
+          {teams.map((team) => (
             <TeamToken key={team.letter} {...team} />
           ))}
         </g>
@@ -168,10 +169,10 @@ export function RaceMapPreview() {
         className="absolute top-5 left-5 w-36 rounded-2xl bg-surface/95 p-2.5 shadow-card ring-1 ring-line backdrop-blur sm:top-7 sm:left-7 sm:w-44 sm:p-3"
       >
         <p className="px-1 text-[10px] font-extrabold tracking-widest text-ink-muted uppercase sm:text-[11px]">
-          Лидеры · пример
+          {m.preview.leaders}
         </p>
         <ol className="mt-1.5 space-y-1">
-          {TEAMS.map((team, index) => (
+          {teams.map((team, index) => (
             <li key={team.letter} className="flex items-center gap-2 rounded-lg px-1 py-0.5 text-xs font-bold sm:text-sm">
               <span className="w-3 text-ink-muted tabular-nums">{index + 1}</span>
               <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: team.color }} />

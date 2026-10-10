@@ -26,9 +26,3 @@ export function isJoinable(status: RaceStatus): boolean {
   return status === "lobby" || status === "running";
 }
 
-export const RACE_STATUS_LABELS: Record<RaceStatus, string> = {
-  draft: "Черновик",
-  lobby: "Ожидание",
-  running: "Идёт",
-  finished: "Завершена",
-};

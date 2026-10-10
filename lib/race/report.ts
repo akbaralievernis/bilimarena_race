@@ -1,3 +1,4 @@
+import { ru, type Messages } from "@/lib/i18n/messages/ru";
 import { isRaceStatus, type RaceStatus } from "@/lib/race/status";
 import type { TaskType } from "@/lib/race/lobby";
 
@@ -295,12 +296,9 @@ export function hardestTasks(tasks: ReportTask[], limit = 3): ReportTask[] {
     .slice(0, limit);
 }
 
-/** "45 с", "3 мин 05 с", "1 ч 02 мин". */
-export function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds} с`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} мин ${String(seconds % 60).padStart(2, "0")} с`;
-  return `${Math.floor(minutes / 60)} ч ${String(minutes % 60).padStart(2, "0")} мин`;
+/** "45 с", "3 мин 05 с", "1 ч 02 мин" in the viewer's language. */
+export function formatDuration(seconds: number, m: Messages = ru): string {
+  return m.report.duration(seconds);
 }
 
 // ---------------------------------------------------------------------------
@@ -321,8 +319,8 @@ const BOM = String.fromCharCode(0xfeff); // UTF-8 BOM: Excel then reads Cyrillic
 const csvFile = (lines: string[]) => `${BOM}${lines.join("\r\n")}\r\n`;
 
 /** Final table: one team per line. */
-export function standingsCsv(report: RaceReport): string {
-  const lines = [row(["Место", "Команда", "Очки", "Финиш", "Верно", "Неверно", "Учеников"])];
+export function standingsCsv(report: RaceReport, m: Messages = ru): string {
+  const lines = [row(m.report.csv.standings)];
   for (const team of report.teams) {
     lines.push(
       row([team.place, team.name, team.score, team.finishOrder, team.correct, team.wrong, team.memberCount]),
@@ -332,8 +330,8 @@ export function standingsCsv(report: RaceReport): string {
 }
 
 /** Every answer of the race, one per line — for Excel or Google Sheets. */
-export function answersCsv(report: RaceReport, formatTime: (iso: string) => string): string {
-  const lines = [row(["Время", "Команда", "Ученик", "Чекпоинт", "Название", "Результат", "Очки"])];
+export function answersCsv(report: RaceReport, formatTime: (iso: string) => string, m: Messages = ru): string {
+  const lines = [row(m.report.csv.answers)];
   for (const event of report.timeline) {
     if (event.kind !== "answer") continue;
     lines.push(
@@ -343,7 +341,7 @@ export function answersCsv(report: RaceReport, formatTime: (iso: string) => stri
         event.participantName,
         event.position,
         event.checkpointTitle,
-        event.correct ? "верно" : "неверно",
+        event.correct ? m.report.csv.correct : m.report.csv.wrong,
         event.points,
       ]),
     );

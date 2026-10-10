@@ -1,12 +1,11 @@
 "use server";
 
-import { SETUP_REQUIRED_MESSAGE } from "@/lib/actions";
 import { isSupabaseConfigured } from "@/lib/env";
+import { getI18n } from "@/lib/i18n/server";
 import { raceErrorMessage } from "@/lib/race/errors";
 import { isUuid } from "@/lib/race/validation";
 import { createClient } from "@/lib/supabase/server";
 
-const INVALID_REQUEST = { ok: false as const, message: "Некорректный запрос. Обновите страницу." };
 
 export type AdvanceResult =
   | { ok: true; position: number; finished: boolean; moved: boolean }
@@ -17,14 +16,15 @@ export type AdvanceResult =
  * checks membership, race status, the N → N+1 rule and refuses task points.
  */
 export async function advanceTeamAction(teamId: unknown, toPosition: unknown): Promise<AdvanceResult> {
-  if (!isSupabaseConfigured()) return { ok: false, message: SETUP_REQUIRED_MESSAGE };
+  const { m } = await getI18n();
+  if (!isSupabaseConfigured()) return { ok: false, message: m.errors.setupRequired };
   if (typeof teamId !== "string" || !isUuid(teamId) || !Number.isInteger(toPosition) || (toPosition as number) < 1) {
-    return INVALID_REQUEST;
+    return { ok: false, message: m.errors.invalidRequest };
   }
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("advance_team", { p_team_id: teamId, p_to_position: toPosition });
-  if (error) return { ok: false, message: raceErrorMessage(error) };
+  if (error) return { ok: false, message: raceErrorMessage(error, {}, m) };
 
   const result = (data ?? {}) as { position?: unknown; finished?: unknown; moved?: unknown };
   return {
@@ -56,7 +56,8 @@ export type AnswerResult =
  * `answer`: option index ("0".."5") or the short answer text.
  */
 export async function submitAnswerAction(teamId: unknown, taskId: unknown, answer: unknown): Promise<AnswerResult> {
-  if (!isSupabaseConfigured()) return { ok: false, message: SETUP_REQUIRED_MESSAGE };
+  const { m } = await getI18n();
+  if (!isSupabaseConfigured()) return { ok: false, message: m.errors.setupRequired };
   if (
     typeof teamId !== "string" ||
     !isUuid(teamId) ||
@@ -64,11 +65,11 @@ export async function submitAnswerAction(teamId: unknown, taskId: unknown, answe
     !isUuid(taskId) ||
     typeof answer !== "string"
   ) {
-    return INVALID_REQUEST;
+    return { ok: false, message: m.errors.invalidRequest };
   }
   const value = answer.trim();
   if (value === "" || [...value].length > 200) {
-    return { ok: false, message: raceErrorMessage({ message: "invalid_answer" }) };
+    return { ok: false, message: m.errors.race.invalid_answer };
   }
 
   const supabase = await createClient();
@@ -77,7 +78,7 @@ export async function submitAnswerAction(teamId: unknown, taskId: unknown, answe
     p_task_id: taskId,
     p_answer: value,
   });
-  if (error) return { ok: false, message: raceErrorMessage(error) };
+  if (error) return { ok: false, message: raceErrorMessage(error, {}, m) };
 
   const result = (data ?? {}) as Record<string, unknown>;
   return {

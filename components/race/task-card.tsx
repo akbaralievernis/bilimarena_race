@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { Button } from "@/components/ui/button";
 import type { CurrentTask, RoutePoint } from "@/lib/race/lobby";
 import { pointLabel } from "@/lib/race/route";
@@ -45,6 +46,7 @@ export function TaskCard({
   const answer = task.type === "single_choice" ? (choice === null ? "" : String(choice)) : text;
   const ready = isAnswerReady(task.type, answer);
   const pause = usePause(task);
+  const { m } = useI18n();
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -54,7 +56,7 @@ export function TaskCard({
   return (
     <form onSubmit={submit} className="animate-pop-in mt-4 rounded-2xl bg-brand-soft/60 p-4 ring-1 ring-brand/20 sm:p-5" noValidate>
       <p className="text-xs font-extrabold tracking-wider text-brand-strong uppercase">
-        {pointLabel(point)} · задание
+        {m.task.heading(pointLabel(point, m))}
       </p>
       <p className="mt-0.5 font-bold break-words">{point.title}</p>
       <p id={`question-${task.id}`} className="mt-3 text-lg leading-snug font-semibold whitespace-pre-line break-words">
@@ -63,7 +65,7 @@ export function TaskCard({
 
       {task.type === "single_choice" && task.options ? (
         <fieldset className="mt-4" aria-describedby={`question-${task.id}`} disabled={pending}>
-          <legend className="sr-only">Варианты ответа</legend>
+          <legend className="sr-only">{m.task.options}</legend>
           <div className="space-y-2">
             {task.options.map((option, index) => (
               <label
@@ -87,7 +89,7 @@ export function TaskCard({
       ) : (
         <div className="mt-4">
           <label htmlFor={`answer-${task.id}`} className="block text-sm font-semibold text-ink-muted">
-            Ваш ответ
+            {m.task.yourAnswer}
           </label>
           <input
             id={`answer-${task.id}`}
@@ -108,12 +110,12 @@ export function TaskCard({
             <circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" strokeWidth="2" />
             <path d="M10 6v4.5l2.5 1.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
-          Пауза после неверного ответа: ещё {pause} с
+          {m.task.pause(pause)}
         </p>
       )}
 
-      <Button type="submit" className="mt-4 w-full" disabled={!ready || pause > 0} pending={pending} pendingLabel="Проверяем…">
-        {pause > 0 ? `Подождите ${pause} с` : "Ответить"}
+      <Button type="submit" className="mt-4 w-full" disabled={!ready || pause > 0} pending={pending} pendingLabel={m.task.checking}>
+        {pause > 0 ? m.task.wait(pause) : m.task.submit}
       </Button>
     </form>
   );

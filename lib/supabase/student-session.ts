@@ -1,3 +1,4 @@
+import type { Messages } from "@/lib/i18n/config";
 import { authErrorMessage } from "@/lib/race/errors";
 import { createClient } from "@/lib/supabase/client";
 
@@ -10,10 +11,10 @@ import { createClient } from "@/lib/supabase/client";
  *
  * Returns an error text, or null when the browser now has a session.
  */
-export async function ensureStudentSession(): Promise<string | null> {
+export async function ensureStudentSession(m: Messages): Promise<string | null> {
   const supabase = createClient();
   const { data } = await supabase.auth.getSession();
   if (data.session) return null;
   const { error } = await supabase.auth.signInAnonymously();
-  return error ? authErrorMessage(error) : null;
+  return error ? authErrorMessage(error, m) : null;
 }

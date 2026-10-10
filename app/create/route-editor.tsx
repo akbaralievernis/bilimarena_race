@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useI18n } from "@/components/i18n/i18n-provider";
 import type { TaskType } from "@/lib/race/lobby";
-import { TASK_LIMITS, TASK_TYPE_LABELS } from "@/lib/race/tasks";
+import { TASK_LIMITS } from "@/lib/race/tasks";
 import { LIMITS } from "@/lib/race/validation";
 
 export type OptionDraft = { id: string; text: string };
@@ -93,6 +94,7 @@ function ErrorText({ id, message }: { id: string; message?: string }) {
 }
 
 function FixedPoint({ label, tone }: { label: string; tone: "start" | "finish" }) {
+  const { m } = useI18n();
   return (
     <li className="flex items-center gap-3 rounded-2xl bg-canvas px-3 py-2.5 ring-1 ring-line">
       <span
@@ -101,7 +103,7 @@ function FixedPoint({ label, tone }: { label: string; tone: "start" | "finish" }
         }`}
         aria-hidden="true"
       >
-        {tone === "start" ? "С" : "Ф"}
+        {tone === "start" ? m.common.startLetter : m.common.finishLetter}
       </span>
       <span className="text-sm font-bold text-ink-muted">{label}</span>
     </li>
@@ -122,6 +124,7 @@ function TaskEditor({
   fieldError: FieldError;
 }) {
   const { task } = item;
+  const { m } = useI18n();
   const questionId = `question-${item.id}`;
   const answerId = `answer-${item.id}`;
   const questionError = fieldError(`question-${index}`);
@@ -132,8 +135,8 @@ function TaskEditor({
   return (
     <div className="mt-3 rounded-xl bg-canvas p-3 ring-1 ring-line">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-bold">Задание</p>
-        <div role="group" aria-label={`Тип задания чекпоинта ${index + 1}`} className="flex gap-1 rounded-xl bg-surface p-1 ring-1 ring-line">
+        <p className="text-sm font-bold">{m.route.task}</p>
+        <div role="group" aria-label={m.route.taskType(index + 1)} className="flex gap-1 rounded-xl bg-surface p-1 ring-1 ring-line">
           {(["single_choice", "short_answer"] as const).map((type) => (
             <button
               key={type}
@@ -144,14 +147,14 @@ function TaskEditor({
                 task.type === type ? "bg-brand text-white" : "text-ink-muted hover:text-ink"
               }`}
             >
-              {TASK_TYPE_LABELS[type]}
+              {m.route.taskTypes[type]}
             </button>
           ))}
         </div>
       </div>
 
       <label htmlFor={questionId} className="mt-3 block text-sm font-semibold text-ink-muted">
-        Вопрос
+        {m.route.question}
       </label>
       <textarea
         id={questionId}
@@ -159,7 +162,7 @@ function TaskEditor({
         onChange={(event) => set({ question: event.target.value })}
         maxLength={TASK_LIMITS.question.max}
         rows={2}
-        placeholder="Например, «Сколько будет 3/4 + 1/4?»"
+        placeholder={m.route.questionPlaceholder}
         aria-invalid={questionError ? true : undefined}
         aria-describedby={questionError ? `${questionId}-error` : undefined}
         className={`${control} mt-1.5 min-h-16 resize-y py-2`}
@@ -168,7 +171,7 @@ function TaskEditor({
 
       {task.type === "single_choice" ? (
         <fieldset className="mt-3 min-w-0">
-          <legend className="text-sm font-semibold text-ink-muted">Варианты — отметьте правильный</legend>
+          <legend className="text-sm font-semibold text-ink-muted">{m.route.optionsLegend}</legend>
           <ul className="mt-1.5 space-y-2">
             {task.options.map((option, optionIndex) => {
               const inputId = `option-${option.id}`;
@@ -179,11 +182,11 @@ function TaskEditor({
                     name={`correct-${item.id}`}
                     checked={task.correctOptionId === option.id}
                     onChange={() => set({ correctOptionId: option.id })}
-                    aria-label={`Вариант ${optionIndex + 1} — правильный`}
+                    aria-label={m.route.optionCorrect(optionIndex + 1)}
                     className="size-5 shrink-0 accent-brand"
                   />
                   <label htmlFor={inputId} className="sr-only">
-                    Вариант {optionIndex + 1}
+                    {m.route.option(optionIndex + 1)}
                   </label>
                   <input
                     id={inputId}
@@ -196,7 +199,7 @@ function TaskEditor({
                       })
                     }
                     maxLength={TASK_LIMITS.option.max}
-                    placeholder={`Вариант ${optionIndex + 1}`}
+                    placeholder={m.route.option(optionIndex + 1)}
                     autoComplete="off"
                     className={`${control} min-h-10 flex-1`}
                   />
@@ -210,7 +213,7 @@ function TaskEditor({
                         correctOptionId: task.correctOptionId === option.id ? null : task.correctOptionId,
                       })
                     }
-                    aria-label={`Удалить вариант ${optionIndex + 1}`}
+                    aria-label={m.route.removeOption(optionIndex + 1)}
                   >
                     <Cross />
                   </button>
@@ -225,13 +228,13 @@ function TaskEditor({
             disabled={task.options.length >= TASK_LIMITS.options.max}
             className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-bold text-brand-strong transition hover:bg-brand-soft disabled:cursor-not-allowed disabled:opacity-50"
           >
-            + Вариант
+            {m.route.addOption}
           </button>
         </fieldset>
       ) : (
         <div className="mt-3">
           <label htmlFor={answerId} className="block text-sm font-semibold text-ink-muted">
-            Правильный ответ
+            {m.route.answer}
           </label>
           <input
             id={answerId}
@@ -244,7 +247,7 @@ function TaskEditor({
             className={`${control} mt-1.5 min-h-10`}
           />
           <p id={`${answerId}-hint`} className="mt-1 text-xs text-ink-muted">
-            Регистр, лишние пробелы и ё/е при проверке не важны.
+            {m.route.answerHint}
           </p>
           <ErrorText id={`${answerId}-error`} message={answerError} />
         </div>
@@ -271,6 +274,7 @@ export function RouteEditor({
   error?: string;
   disabled: boolean;
 }) {
+  const { m } = useI18n();
   const [nextId, setNextId] = useState(items.length);
   const counter = useRef(0);
   const focusId = useRef<string | null>(null);
@@ -299,10 +303,10 @@ export function RouteEditor({
 
   return (
     <fieldset disabled={disabled} aria-describedby="route-hint" className="min-w-0">
-      <legend className="text-sm font-bold">Маршрут и задания</legend>
+      <legend className="text-sm font-bold">{m.route.legend}</legend>
       <div className="mt-1 flex items-baseline justify-between gap-3">
         <p id="route-hint" className="text-sm text-ink-muted">
-          Команда проходит чекпоинт, только правильно ответив на его задание.
+          {m.route.hint}
         </p>
         <span className="shrink-0 text-sm text-ink-muted">
           {items.length} / {max}
@@ -310,7 +314,7 @@ export function RouteEditor({
       </div>
 
       <ol className="mt-3 space-y-2">
-        <FixedPoint label="Старт" tone="start" />
+        <FixedPoint label={m.common.start} tone="start" />
         {items.map((item, index) => {
           const inputId = `route-${item.id}`;
           const titleError = fieldError(`checkpoint-${index}`);
@@ -321,7 +325,7 @@ export function RouteEditor({
                 className={iconButton}
                 onClick={() => move(index, -1)}
                 disabled={index === 0}
-                aria-label={`Поднять чекпоинт ${index + 1}`}
+                aria-label={m.route.moveUp(index + 1)}
               >
                 <Arrow up />
               </button>
@@ -330,7 +334,7 @@ export function RouteEditor({
                 className={iconButton}
                 onClick={() => move(index, 1)}
                 disabled={index === items.length - 1}
-                aria-label={`Опустить чекпоинт ${index + 1}`}
+                aria-label={m.route.moveDown(index + 1)}
               >
                 <Arrow />
               </button>
@@ -339,7 +343,7 @@ export function RouteEditor({
                 className={`${iconButton} hover:text-danger`}
                 onClick={() => onChange(items.filter((other) => other.id !== item.id))}
                 disabled={items.length <= min}
-                aria-label={`Удалить чекпоинт ${index + 1}`}
+                aria-label={m.route.remove(index + 1)}
               >
                 <Cross />
               </button>
@@ -355,7 +359,7 @@ export function RouteEditor({
                   {index + 1}
                 </span>
                 <label htmlFor={inputId} className="sr-only">
-                  Название чекпоинта {index + 1}
+                  {m.route.checkpointTitle(index + 1)}
                 </label>
                 <input
                   id={inputId}
@@ -367,7 +371,7 @@ export function RouteEditor({
                   }}
                   value={item.title}
                   onChange={(event) => update(item.id, { title: event.target.value })}
-                  placeholder={`Чекпоинт ${index + 1}`}
+                  placeholder={m.common.checkpoint(index + 1)}
                   maxLength={LIMITS.checkpointTitle.max}
                   autoComplete="off"
                   aria-invalid={titleError ? true : undefined}
@@ -389,7 +393,7 @@ export function RouteEditor({
             </li>
           );
         })}
-        <FixedPoint label="Финиш" tone="finish" />
+        <FixedPoint label={m.common.finish} tone="finish" />
       </ol>
 
       {error && <p className="mt-2 text-sm font-semibold text-danger">{error}</p>}
@@ -403,7 +407,7 @@ export function RouteEditor({
         <svg viewBox="0 0 20 20" aria-hidden="true" className="size-4">
           <path d="M10 4v12M4 10h12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
-        {items.length >= max ? `Максимум ${max} чекпоинтов` : "Добавить чекпоинт"}
+        {items.length >= max ? m.route.max(max) : m.route.add}
       </button>
     </fieldset>
   );

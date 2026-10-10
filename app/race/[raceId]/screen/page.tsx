@@ -1,15 +1,13 @@
-import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { NoticeCard } from "@/components/notice-card";
 import { ProjectorScreen } from "@/components/projector/projector-screen";
 import { RaceUnavailable } from "@/components/race/race-unavailable";
 import { SetupRequired } from "@/components/setup-required";
+import { getI18n, pageMetadata } from "@/lib/i18n/server";
 import { loadRace } from "@/lib/race/load-race";
 import { isUuid } from "@/lib/race/validation";
 
-export const metadata: Metadata = {
-  title: "Экран для проектора",
-};
+export const generateMetadata = pageMetadata("screen");
 
 const screenIcon = (
   <svg viewBox="0 0 24 24" aria-hidden="true" className="size-8">
@@ -34,11 +32,12 @@ export default async function ProjectorPage({ params }: PageProps<"/race/[raceId
   if (result.kind === "signed-out") redirect(`/login?next=/race/${raceId}/screen`);
   if (result.kind !== "ok") return <RaceUnavailable kind={result.kind} />;
   if (result.lobby.viewer.role !== "teacher") {
+    const { m } = await getI18n();
     return (
       <NoticeCard
-        badge="Для учителя"
-        title="Экран проектора — у учителя"
-        description="Этот экран открывает учитель на компьютере у доски. Ваша гонка — на странице карты."
+        badge={m.notices.screenBadge}
+        title={m.notices.screenTitle}
+        description={m.notices.screenText}
         icon={screenIcon}
       />
     );

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { finishRaceAction, startRaceAction } from "@/app/race/[raceId]/lobby/actions";
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import type { LobbyRace } from "@/lib/race/lobby";
@@ -10,20 +11,21 @@ import type { ActionRunner } from "./use-action-runner";
 
 type StatusAction = { to: "running" | "finished"; label: string; confirm: string; pendingLabel: string };
 
-const STATUS_ACTIONS: StatusAction[] = [
-  { to: "running", label: "Начать гонку", confirm: "Начать? Вернуться в лобби будет нельзя.", pendingLabel: "Запуск…" },
-  { to: "finished", label: "Завершить гонку", confirm: "Завершить гонку для всех?", pendingLabel: "Завершение…" },
-];
-
 /**
  * Teacher's start / finish control with an inline confirmation step. Used in
  * the lobby and on the race screen; start_race / finish_race decide on the server.
  */
 export function RaceStatusControl({ race, runner, hint }: { race: LobbyRace; runner: ActionRunner; hint: string }) {
   const [confirming, setConfirming] = useState<StatusAction["to"] | null>(null);
+  const { m } = useI18n();
+  const t = m.statusControl;
+  const actions: StatusAction[] = [
+    { to: "running", label: t.start, confirm: t.startConfirm, pendingLabel: t.starting },
+    { to: "finished", label: t.finish, confirm: t.finishConfirm, pendingLabel: t.finishing },
+  ];
 
   // "Start" is the main action in the lobby; "finish" is offered once running.
-  const action = STATUS_ACTIONS.find(
+  const action = actions.find(
     (candidate) => canTransition(race.status, candidate.to) && (race.status !== "lobby" || candidate.to === "running"),
   );
 
@@ -50,7 +52,7 @@ export function RaceStatusControl({ race, runner, hint }: { race: LobbyRace; run
                   pendingLabel={action.pendingLabel}
                   onClick={() => changeStatus(action)}
                 >
-                  Да
+                  {m.common.yes}
                 </Button>
                 <Button
                   variant="ghost"
@@ -58,7 +60,7 @@ export function RaceStatusControl({ race, runner, hint }: { race: LobbyRace; run
                   disabled={runner.isPending("status")}
                   onClick={() => setConfirming(null)}
                 >
-                  Отмена
+                  {m.common.cancel}
                 </Button>
               </div>
             </div>

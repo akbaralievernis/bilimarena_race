@@ -1,3 +1,6 @@
+"use client";
+
+import { useI18n } from "@/components/i18n/i18n-provider";
 import type { LobbyTeam, RoutePoint } from "@/lib/race/lobby";
 import { teamColor } from "@/lib/race/lobby";
 import { pointLabel, teamsAt } from "@/lib/race/route";
@@ -23,6 +26,7 @@ function Flag() {
 }
 
 function Marker({ point, state }: { point: RoutePoint; state: MarkerState }) {
+  const { m } = useI18n();
   const base = "relative z-10 flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-extrabold transition";
   const ring = state === "next" ? " ring-4 ring-brand/25" : "";
 
@@ -36,12 +40,12 @@ function Marker({ point, state }: { point: RoutePoint; state: MarkerState }) {
   if (state === "passed" || (state === "here" && point.type === "start")) {
     return (
       <span className={`${base} ${state === "passed" ? "bg-teal text-white" : "bg-teal-soft text-teal-strong ring-2 ring-teal"}`}>
-        {state === "passed" ? <Check /> : "С"}
+        {state === "passed" ? <Check /> : m.common.startLetter}
       </span>
     );
   }
   if (point.type === "start") {
-    return <span className={`${base} bg-teal-soft text-teal-strong ring-2 ring-teal/60${ring}`}>С</span>;
+    return <span className={`${base} bg-teal-soft text-teal-strong ring-2 ring-teal/60${ring}`}>{m.common.startLetter}</span>;
   }
   return (
     <span
@@ -55,6 +59,7 @@ function Marker({ point, state }: { point: RoutePoint; state: MarkerState }) {
 }
 
 function TeamChip({ team, teams, own }: { team: LobbyTeam; teams: LobbyTeam[]; own: boolean }) {
+  const { m } = useI18n();
   return (
     <li
       className={`animate-pop-in inline-flex max-w-full items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold ring-1 ${
@@ -63,7 +68,7 @@ function TeamChip({ team, teams, own }: { team: LobbyTeam; teams: LobbyTeam[]; o
     >
       <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: teamColor(teams, team.id) ?? undefined }} aria-hidden="true" />
       <span className="truncate">{team.name}</span>
-      {own && <span className="shrink-0 text-xs font-bold">· ваша</span>}
+      {own && <span className="shrink-0 text-xs font-bold">· {m.common.yours}</span>}
     </li>
   );
 }
@@ -82,9 +87,10 @@ export function RouteMap({
   ownTeamId?: string | null;
 }) {
   const own = teams.find((team) => team.id === ownTeamId) ?? null;
+  const { m } = useI18n();
 
   return (
-    <ol aria-label="Маршрут гонки">
+    <ol aria-label={m.map.aria}>
       {route.map((point, index) => {
         const here = teamsAt(teams, point.position);
         const state: MarkerState = !own
@@ -111,26 +117,26 @@ export function RouteMap({
             <Marker point={point} state={state} />
             <div className="min-w-0 flex-1 pt-1">
               <p className="text-xs font-extrabold tracking-wider text-ink-muted uppercase">
-                {pointLabel(point)}
-                {state === "next" && <span className="text-brand-strong"> · следующий</span>}
+                {pointLabel(point, m)}
+                {state === "next" && <span className="text-brand-strong"> · {m.map.next}</span>}
               </p>
               {point.type === "checkpoint" && <p className="font-bold break-words">{point.title}</p>}
               {point.task ? (
                 <p className="mt-1 line-clamp-2 text-sm break-words text-ink-muted" title={point.task.question}>
                   <span className="font-semibold text-brand-strong">
-                    {point.task.type === "single_choice" ? "Выбор ответа" : "Короткий ответ"}:
+                    {m.route.taskTypes[point.task.type]}:
                   </span>{" "}
                   {point.task.question}
                 </p>
               ) : (
                 point.hasTask && (
                   <span className="mt-1 inline-flex rounded-full bg-brand-soft px-2 py-0.5 text-xs font-bold text-brand-strong">
-                    Задание
+                    {m.map.task}
                   </span>
                 )
               )}
               {here.length > 0 && (
-                <ul className="mt-2 flex flex-wrap gap-1.5" aria-label={`Команды: ${pointLabel(point)}`}>
+                <ul className="mt-2 flex flex-wrap gap-1.5" aria-label={m.map.teamsAt(pointLabel(point, m))}>
                   {here.map((team) => (
                     <TeamChip key={`${team.id}-${team.position}`} team={team} teams={teams} own={team.id === ownTeamId} />
                   ))}

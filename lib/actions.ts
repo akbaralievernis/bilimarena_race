@@ -7,6 +7,3 @@
 export type ActionResult<Field extends string = string> =
   | { ok: true; redirectTo?: string; message?: string }
   | { ok: false; message?: string; fieldErrors?: Partial<Record<Field, string>> };
-
-export const SETUP_REQUIRED_MESSAGE =
-  "Сервер ещё не подключён к Supabase. Добавьте переменные из .env.example в .env.local (см. README).";

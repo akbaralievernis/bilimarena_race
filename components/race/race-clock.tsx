@@ -1,3 +1,6 @@
+"use client";
+
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { URGENT_SECONDS, formatClock } from "@/lib/race/timer";
 
 const clockIcon = (
@@ -12,6 +15,7 @@ const clockIcon = (
  * text is announced only on whole minutes and in the last minute's milestones.
  */
 export function RaceClock({ seconds, big = false }: { seconds: number; big?: boolean }) {
+  const { m } = useI18n();
   const urgent = seconds <= URGENT_SECONDS;
   const over = seconds === 0;
   const tone = over
@@ -24,10 +28,10 @@ export function RaceClock({ seconds, big = false }: { seconds: number; big?: boo
     <p
       className={`inline-flex items-center rounded-2xl font-display font-bold tabular-nums ${tone} ${size}`}
       role="timer"
-      aria-label={over ? "Время гонки вышло" : `Осталось ${formatClock(seconds)}`}
+      aria-label={over ? m.timer.overAria : m.timer.leftAria(formatClock(seconds))}
     >
       {clockIcon}
-      <span>{over ? "Время вышло" : formatClock(seconds)}</span>
+      <span>{over ? m.timer.over : formatClock(seconds)}</span>
     </p>
   );
 }

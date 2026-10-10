@@ -38,7 +38,7 @@ describe("formatting", () => {
   });
 
   it("declines the word «очко»", () => {
-    expect([1, 2, 5, 11, 21, 22, 112, 150, -20].map(pointsWord)).toEqual([
+    expect([1, 2, 5, 11, 21, 22, 112, 150, -20].map((n) => pointsWord(n))).toEqual([
       "очко",
       "очка",
       "очков",

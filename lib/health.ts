@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getSupabasePublicConfig, isSupabaseConfigured } from "@/lib/env";
+import { ru, type Messages } from "@/lib/i18n/messages/ru";
 
 /*
  * Stage 6: "is everything ready for the lesson?" — checked from the server with
@@ -54,7 +55,8 @@ export function markerState(result: Probe): "exists" | "missing" | "unknown" {
   return "unknown";
 }
 
-export async function checkHealth(): Promise<HealthReport> {
+export async function checkHealth(m: Messages = ru): Promise<HealthReport> {
+  const t = m.statusPage.checks;
   const checkedAt = new Date().toISOString();
   if (!isSupabaseConfigured()) {
     return {
@@ -64,16 +66,16 @@ export async function checkHealth(): Promise<HealthReport> {
       checks: [
         {
           id: "env",
-          label: "Настройки Supabase",
+          label: t.env,
           ok: false,
-          detail: "Не заданы NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.",
+          detail: t.envMissing,
         },
       ],
     };
   }
 
   const { url, publishableKey: key } = getSupabasePublicConfig();
-  const checks: HealthCheck[] = [{ id: "env", label: "Настройки Supabase", ok: true, detail: new URL(url).host }];
+  const checks: HealthCheck[] = [{ id: "env", label: t.env, ok: true, detail: new URL(url).host }];
 
   // Auth settings: reachability, latency and whether students can sign in.
   const started = performance.now();
@@ -92,28 +94,28 @@ export async function checkHealth(): Promise<HealthReport> {
 
   checks.push({
     id: "server",
-    label: "Сервер Supabase отвечает",
+    label: t.server,
     ok: settings !== null,
     detail: settings
-      ? `${latencyMs} мс`
-      : "Нет ответа. Проект на бесплатном тарифе мог уснуть — откройте его в Supabase Dashboard и нажмите Restore.",
+      ? t.ms(latencyMs ?? 0)
+      : t.serverDown,
   });
   if (!settings) return { ok: false, checkedAt, latencyMs, checks };
 
   checks.push({
     id: "anonymous",
-    label: "Вход учеников без регистрации",
+    label: t.anonymous,
     ok: settings.external?.anonymous_users === true,
     detail:
       settings.external?.anonymous_users === true
-        ? "Anonymous Sign-Ins включены"
-        : "Включите Authentication → Sign In / Providers → Anonymous Sign-Ins.",
+        ? t.anonymousOn
+        : t.anonymousOff,
   });
   checks.push({
     id: "signup",
-    label: "Регистрация учителей",
+    label: t.signup,
     ok: true,
-    detail: settings.disable_signup ? "закрыта (новые учителя не смогут зарегистрироваться)" : "открыта",
+    detail: settings.disable_signup ? t.signupClosed : t.signupOpen,
   });
 
   const states = await Promise.all(
@@ -132,14 +134,14 @@ export async function checkHealth(): Promise<HealthReport> {
   const unknown = states.includes("unknown");
   checks.push({
     id: "schema",
-    label: "Миграции базы (этапы 1–7)",
+    label: t.schema,
     ok: missing.length === 0 && !unknown,
     detail:
       missing.length > 0
-        ? `Не применены этапы: ${missing.join(", ")}. Примените миграции из supabase/migrations.`
+        ? t.schemaMissing(missing.join(", "))
         : unknown
-          ? "Не удалось проверить — обновите страницу."
-          : "все применены",
+          ? t.schemaUnknown
+          : t.schemaOk,
   });
 
   return { ok: checks.every((check) => check.ok), checkedAt, latencyMs, checks };

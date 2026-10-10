@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { fieldError, useFormAction } from "@/components/forms/use-form-action";
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { TextAreaField, TextField } from "@/components/ui/field";
@@ -13,6 +14,7 @@ const INITIAL_ROUTE = [draftItem("checkpoint-0"), draftItem("checkpoint-1"), dra
 
 export function CreateRaceForm() {
   const [state, formAction, pending] = useFormAction(createRaceAction);
+  const { m } = useI18n();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [route, setRoute] = useState(INITIAL_ROUTE);
@@ -23,8 +25,8 @@ export function CreateRaceForm() {
       <TextField
         id="race-title"
         name="title"
-        label="Название гонки"
-        placeholder="Например, «Дроби — 6А»"
+        label={m.create.raceTitle}
+        placeholder={m.create.raceTitlePlaceholder}
         maxLength={LIMITS.raceTitle.max}
         value={title}
         onChange={(event) => setTitle(event.target.value)}
@@ -36,8 +38,8 @@ export function CreateRaceForm() {
       <TextAreaField
         id="race-description"
         name="description"
-        label="Описание (необязательно)"
-        hint={`Тема или правила — до ${LIMITS.raceDescription.max} символов.`}
+        label={m.create.description}
+        hint={m.create.descriptionHint(LIMITS.raceDescription.max)}
         maxLength={LIMITS.raceDescription.max}
         value={description}
         onChange={(event) => setDescription(event.target.value)}
@@ -55,15 +57,15 @@ export function CreateRaceForm() {
       />
       {state.status === "error" && state.message && <Alert>{state.message}</Alert>}
       {state.status === "error" && !state.message && (
-        <Alert>Проверьте отмеченные поля — у каждого чекпоинта должно быть заполненное задание.</Alert>
+        <Alert>{m.create.checkFields}</Alert>
       )}
       <Button
         type="submit"
         className="w-full sm:w-auto"
         pending={locked}
-        pendingLabel={pending ? "Создание…" : "Открываем лобби…"}
+        pendingLabel={pending ? m.create.creating : m.create.openingLobby}
       >
-        Создать гонку
+        {m.create.submit}
       </Button>
     </form>
   );

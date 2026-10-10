@@ -1,6 +1,7 @@
 "use client";
 
 import { assignParticipantAction } from "@/app/race/[raceId]/lobby/actions";
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { Spinner } from "@/components/ui/spinner";
 import { teamColor, type LobbyParticipant, type LobbySnapshot } from "@/lib/race/lobby";
 import type { ActionRunner } from "./use-action-runner";
@@ -14,6 +15,7 @@ export function ParticipantsPanel({
   runner: ActionRunner;
   locked: boolean;
 }) {
+  const { m } = useI18n();
   return (
     <section
       aria-labelledby="participants-heading"
@@ -21,15 +23,14 @@ export function ParticipantsPanel({
     >
       <div className="flex items-baseline justify-between gap-3">
         <h2 id="participants-heading" className="font-display text-lg font-bold tracking-tight">
-          Участники
+          {m.lobby.participants}
         </h2>
         <span className="text-sm font-semibold text-ink-muted">{lobby.studentCount}</span>
       </div>
 
       {lobby.participants.length === 0 ? (
         <p className="mt-5 rounded-2xl border-2 border-dashed border-line px-4 py-6 text-center text-sm text-ink-muted">
-          Пока никто не подключился. Студенты открывают «Подключиться к гонке» и вводят код комнаты — они появятся здесь
-          сразу.
+          {m.lobby.noParticipants}
         </p>
       ) : (
         <ul className="mt-4 divide-y divide-line">
@@ -59,6 +60,7 @@ function ParticipantRow({
   runner: ActionRunner;
   locked: boolean;
 }) {
+  const { m } = useI18n();
   const key = `assign:${participant.id}`;
   const pending = runner.isPending(key);
   const error = runner.errorFor(key);
@@ -80,7 +82,7 @@ function ParticipantRow({
         </span>
         <div className="flex w-full items-center gap-2 sm:w-auto">
           <label htmlFor={selectId} className="sr-only">
-            Команда для {participant.displayName}
+            {m.lobby.teamFor(participant.displayName)}
           </label>
           <select
             id={selectId}
@@ -93,7 +95,7 @@ function ParticipantRow({
               participant.teamId ? "text-ink" : "text-ink-muted"
             }`}
           >
-            <option value="">{lobby.teams.length === 0 ? "Сначала создайте команду" : "Без команды"}</option>
+            <option value="">{lobby.teams.length === 0 ? m.lobby.createTeamFirst : m.lobby.unassigned}</option>
             {lobby.teams.map((team) => (
               <option key={team.id} value={team.id}>
                 {team.name}

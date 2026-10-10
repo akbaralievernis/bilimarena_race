@@ -1,6 +1,7 @@
 "use client";
 
 import { setTimeLimitAction } from "@/app/race/[raceId]/lobby/actions";
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import type { LobbyRace } from "@/lib/race/lobby";
@@ -12,6 +13,7 @@ import type { ActionRunner } from "./use-action-runner";
  * none); while running — "+5 минут". The database checks and applies it.
  */
 export function TimeLimitControl({ race, runner }: { race: LobbyRace; runner: ActionRunner }) {
+  const { m } = useI18n();
   const pending = runner.isPending("time-limit");
   const error = runner.errorFor("time-limit");
   const set = (seconds: number | null) => runner.run("time-limit", () => setTimeLimitAction(race.id, seconds));
@@ -23,8 +25,8 @@ export function TimeLimitControl({ race, runner }: { race: LobbyRace; runner: Ac
     const next = extendedLimit(race.timeLimitSeconds);
     return (
       <div className="flex flex-col items-start gap-2">
-        <Button variant="secondary" size="sm" disabled={next === null} pending={pending} pendingLabel="Добавляем…" onClick={() => next && set(next)}>
-          +5 минут
+        <Button variant="secondary" size="sm" disabled={next === null} pending={pending} pendingLabel={m.timer.extending} onClick={() => next && set(next)}>
+          {m.timer.extend}
         </Button>
         {error && <Alert>{error}</Alert>}
       </div>
@@ -38,7 +40,7 @@ export function TimeLimitControl({ race, runner }: { race: LobbyRace; runner: Ac
   return (
     <div className="flex flex-col gap-2">
       <label htmlFor="race-time-limit" className="text-sm font-bold">
-        Время гонки
+        {m.timer.label}
       </label>
       <select
         id="race-time-limit"
@@ -49,14 +51,14 @@ export function TimeLimitControl({ race, runner }: { race: LobbyRace; runner: Ac
       >
         {options.map((seconds) => (
           <option key={seconds ?? "none"} value={seconds ?? ""}>
-            {seconds === null ? "Без ограничения" : minutesLabel(seconds)}
+            {seconds === null ? m.timer.none : minutesLabel(seconds, m)}
           </option>
         ))}
       </select>
       <p className="text-xs text-ink-muted">
         {race.timeLimitSeconds === null
-          ? "Гонка идёт, пока вы её не завершите."
-          : "Когда время выйдет, ответы перестанут приниматься и гонка завершится сама."}
+          ? m.timer.noLimitHint
+          : m.timer.limitHint}
       </p>
       {error && <Alert>{error}</Alert>}
     </div>

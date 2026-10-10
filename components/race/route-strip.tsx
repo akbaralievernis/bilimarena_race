@@ -1,10 +1,14 @@
+"use client";
+
+import { useI18n } from "@/components/i18n/i18n-provider";
 import type { RoutePoint } from "@/lib/race/lobby";
 import { pointLabel } from "@/lib/race/route";
 
 /** Compact one-line route for the lobby: Старт → 1. Дроби → … → Финиш. */
 export function RouteStrip({ route }: { route: RoutePoint[] }) {
+  const { m } = useI18n();
   return (
-    <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-2" aria-label="Маршрут гонки">
+    <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-2" aria-label={m.map.aria}>
       {route.map((point, index) => (
         <li key={point.position} className="flex min-w-0 items-center gap-1.5">
           <span
@@ -15,9 +19,9 @@ export function RouteStrip({ route }: { route: RoutePoint[] }) {
                   ? "bg-ink text-white"
                   : "bg-canvas ring-1 ring-line"
             }`}
-            title={point.type === "checkpoint" ? `${pointLabel(point)}: ${point.title}` : undefined}
+            title={point.type === "checkpoint" ? `${pointLabel(point, m)}: ${point.title}` : undefined}
           >
-            {point.type === "checkpoint" ? `${point.position}. ${point.title}` : pointLabel(point)}
+            {point.type === "checkpoint" ? `${point.position}. ${point.title}` : pointLabel(point, m)}
           </span>
           {index < route.length - 1 && (
             <svg viewBox="0 0 16 16" aria-hidden="true" className="size-3.5 shrink-0 text-ink-muted">

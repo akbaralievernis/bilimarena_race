@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { JoinQr } from "@/components/lobby/join-qr";
 import { StatusBadge } from "@/components/lobby/status-badge";
 import { useLobby } from "@/components/lobby/use-lobby";
@@ -50,6 +51,8 @@ export function ProjectorScreen({ initial }: { initial: LobbySnapshot }) {
   const secondsLeft = useRaceClock(lobby.race, refresh);
   const fullscreen = useFullscreen();
   const host = useHost();
+  const { m } = useI18n();
+  const t = m.projector;
 
   if (accessLost) return <AccessLost />;
 
@@ -69,7 +72,7 @@ export function ProjectorScreen({ initial }: { initial: LobbySnapshot }) {
           <div className="flex items-center gap-3">
             {secondsLeft !== null && <RaceClock seconds={secondsLeft} big />}
             <button type="button" onClick={fullscreen.toggle} className={buttonClass({ variant: "secondary", size: "sm" })}>
-              {fullscreen.on ? "Выйти из полного экрана" : "Во весь экран"}
+              {fullscreen.on ? t.exitFullscreen : t.fullscreen}
             </button>
           </div>
         </header>
@@ -77,30 +80,30 @@ export function ProjectorScreen({ initial }: { initial: LobbySnapshot }) {
         {waiting ? (
           <div className="grid flex-1 grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <section
-              aria-label="Как подключиться"
+              aria-label={t.howToJoin}
               className="flex flex-col items-center gap-[2vh] rounded-card bg-surface p-[3vh] text-center shadow-card ring-1 ring-line"
             >
               {/* Sized by the screen height: a 1280×720 projector must show QR and code without scrolling. */}
               <JoinQr code={race.code} className="size-[min(42vh,26rem)]" />
               <p className="text-[clamp(1.25rem,3.2vh,1.875rem)] text-ink-muted">
-                Наведите камеру или откройте <span className="font-bold whitespace-nowrap text-ink">{host || "сайт"}/join</span>
+                {t.scanOrOpen} <span className="font-bold whitespace-nowrap text-ink">{host || t.site}/join</span>
               </p>
               <p
                 className="font-mono text-[clamp(3rem,10vh,6.5rem)] leading-none font-bold tracking-[0.2em]"
-                aria-label={`Код комнаты: ${race.code.split("").join(" ")}`}
+                aria-label={m.roomCode.aria(race.code.split("").join(" "))}
               >
                 {formatRoomCode(race.code)}
               </p>
               {race.timeLimitSeconds !== null && (
                 <p className="text-[clamp(1.125rem,3vh,1.5rem)] font-bold text-ink-muted">
-                  Время гонки: {minutesLabel(race.timeLimitSeconds)}
+                  {t.raceTime}: {minutesLabel(race.timeLimitSeconds, m)}
                 </p>
               )}
             </section>
 
             <section aria-labelledby="joined-heading" className="rounded-card bg-surface p-8 shadow-card ring-1 ring-line">
               <h2 id="joined-heading" className="font-display text-3xl font-bold tracking-tight">
-                Подключились: <span className="tabular-nums">{lobby.studentCount}</span>
+                {t.joined}: <span className="tabular-nums">{lobby.studentCount}</span>
               </h2>
               {teams.length === 0 ? (
                 <ul className="mt-6 flex flex-wrap gap-3 text-xl">
@@ -141,7 +144,7 @@ export function ProjectorScreen({ initial }: { initial: LobbySnapshot }) {
           <div className="grid flex-1 grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
             <section aria-labelledby="board-map" className="rounded-card bg-surface p-8 shadow-card ring-1 ring-line">
               <h2 id="board-map" className="font-display text-2xl font-bold tracking-tight lg:text-3xl">
-                Карта гонки
+                {t.map}
               </h2>
               {/* The shared components are sized for laptops; the board needs them bigger. */}
               <div className="mt-6 xl:[zoom:1.15]">
@@ -150,7 +153,7 @@ export function ProjectorScreen({ initial }: { initial: LobbySnapshot }) {
             </section>
             <section aria-labelledby="board-places" className="rounded-card bg-surface p-8 shadow-card ring-1 ring-line">
               <h2 id="board-places" className="font-display text-2xl font-bold tracking-tight lg:text-3xl">
-                {race.status === "finished" ? "Итоги гонки" : "Места"}
+                {race.status === "finished" ? t.results : t.places}
               </h2>
               <div className="mt-6 grid grid-cols-1 lg:[zoom:1.25]">
                 <Leaderboard teams={teams} route={route} />

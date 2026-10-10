@@ -2,6 +2,7 @@
 
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/components/i18n/i18n-provider";
 
 /**
  * QR code with the join link (/join?code=…): students point the camera and
@@ -9,6 +10,7 @@ import { useEffect, useState } from "react";
  * link always has the address the teacher actually opened (Vercel, localhost).
  */
 export function JoinQr({ code, className = "size-40" }: { code: string; className?: string }) {
+  const { m } = useI18n();
   const [qr, setQr] = useState<{ svg: string; url: string } | null>(null);
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export function JoinQr({ code, className = "size-40" }: { code: string; classNam
   return (
     <div
       role="img"
-      aria-label={`QR-код для подключения: ${qr.url}`}
+      aria-label={m.roomCode.qrAria(qr.url)}
       className={`${className} overflow-hidden rounded-xl bg-white p-1.5 shadow-card [&>svg]:size-full`}
       // The library returns plain SVG markup for our own URL; nothing user-provided goes in.
       dangerouslySetInnerHTML={{ __html: qr.svg }}

@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 import type { ActionResult } from "@/lib/actions";
-import { NETWORK_ERROR_MESSAGE, UNKNOWN_ERROR_MESSAGE, isNetworkError } from "@/lib/race/errors";
+import { useI18n } from "@/components/i18n/i18n-provider";
+import { clientErrorMessage } from "@/lib/race/errors";
 
 export type FormState<Field extends string> =
   | { status: "idle" }
@@ -17,6 +18,7 @@ export type FormState<Field extends string> =
  */
 export function useFormAction<Field extends string>(action: (formData: FormData) => Promise<ActionResult<Field>>) {
   const router = useRouter();
+  const { m } = useI18n();
 
   return useActionState<FormState<Field>, FormData>(async (_previous, formData) => {
     try {
@@ -27,11 +29,7 @@ export function useFormAction<Field extends string>(action: (formData: FormData)
       if (result.redirectTo) router.push(result.redirectTo);
       return { status: "success", message: result.message, redirecting: Boolean(result.redirectTo) };
     } catch (error) {
-      const offline = typeof navigator !== "undefined" && !navigator.onLine;
-      return {
-        status: "error",
-        message: offline || isNetworkError(error) ? NETWORK_ERROR_MESSAGE : UNKNOWN_ERROR_MESSAGE,
-      };
+      return { status: "error", message: clientErrorMessage(error, m) };
     }
   }, { status: "idle" });
 }

@@ -2,6 +2,7 @@
 
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { raceErrorCode } from "@/lib/race/errors";
 import { parseLobby, type LobbySnapshot } from "@/lib/race/lobby";
 import { createClient } from "@/lib/supabase/client";
@@ -31,6 +32,7 @@ const pendingRemovals = new Map<string, Promise<unknown>>();
  */
 export function useLobby(initial: LobbySnapshot) {
   const raceId = initial.race.id;
+  const { m } = useI18n();
   const supabase = useMemo(() => createClient(), []);
   const [lobby, setLobby] = useState(initial);
   const [connection, setConnection] = useState<ConnectionState>("connecting");
@@ -56,13 +58,13 @@ export function useLobby(initial: LobbySnapshot) {
             ...current,
             ...joined.map((participant) => ({
               id: `${participant.id}-${Date.now()}`,
-              text: `Новый участник: ${participant.displayName}`,
+              text: m.lobby.newParticipant(participant.displayName),
             })),
           ].slice(-4),
         );
       }
     }
-  }, []);
+  }, [m]);
 
   // One request at a time; a change during a request schedules one more read,
   // so responses can never arrive out of order.

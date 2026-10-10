@@ -1,5 +1,6 @@
 import { NoticeCard } from "@/components/notice-card";
 import { ButtonLink } from "@/components/ui/button-link";
+import { getI18n } from "@/lib/i18n/server";
 
 const lockIcon = (
   <svg viewBox="0 0 24 24" aria-hidden="true" className="size-8">
@@ -15,26 +16,27 @@ const lockIcon = (
 );
 
 /** Shared "cannot open this race" screen for the lobby and race pages. */
-export function RaceUnavailable({ kind }: { kind: "network" | "denied" }) {
+export async function RaceUnavailable({ kind }: { kind: "network" | "denied" }) {
+  const { m } = await getI18n();
   if (kind === "network") {
     return (
       <NoticeCard
-        badge="Нет связи"
-        title="Не удалось загрузить гонку"
-        description="Сервер гонки сейчас недоступен. Проверьте интернет и обновите страницу."
+        badge={m.notices.offlineBadge}
+        title={m.notices.offlineTitle}
+        description={m.notices.offlineText}
         icon={lockIcon}
       />
     );
   }
   return (
     <NoticeCard
-      badge="Нет доступа"
-      title="Гонка недоступна"
-      description="Гонка не найдена или вы в ней не участвуете. Подключитесь по коду комнаты."
+      badge={m.notices.deniedBadge}
+      title={m.notices.deniedTitle}
+      description={m.notices.deniedText}
       icon={lockIcon}
     >
       <ButtonLink href="/join" className="mt-8 w-full sm:w-auto">
-        Подключиться по коду
+        {m.notices.joinByCode}
       </ButtonLink>
     </NoticeCard>
   );

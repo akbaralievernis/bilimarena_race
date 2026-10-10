@@ -1,3 +1,4 @@
+import { ru, type Messages } from "@/lib/i18n/messages/ru";
 import type { TaskType } from "@/lib/race/lobby";
 import { LIMITS, cleanText, validateCheckpointTitle } from "@/lib/race/validation";
 
@@ -26,10 +27,6 @@ export type RouteDraftResult =
   | { ok: true; value: RouteInput }
   | { ok: false; error?: string; fieldErrors: Partial<Record<RouteDraftError, string>> };
 
-export const TASK_TYPE_LABELS: Record<TaskType, string> = {
-  single_choice: "Выбор ответа",
-  short_answer: "Короткий ответ",
-};
 
 const length = (value: string) => [...value].length;
 
@@ -46,11 +43,11 @@ export function cleanQuestion(value: string): string {
  * Parses and validates `[{ title, task }]` posted by the route editor.
  * Every checkpoint needs a task (MVP: one mandatory task per checkpoint).
  */
-export function parseRouteDraft(raw: unknown): RouteDraftResult {
+export function parseRouteDraft(raw: unknown, m: Messages = ru): RouteDraftResult {
   const { min, max } = LIMITS.route;
-  if (!Array.isArray(raw)) return { ok: false, error: "Не удалось прочитать маршрут. Обновите страницу.", fieldErrors: {} };
-  if (raw.length < min) return { ok: false, error: "Добавьте хотя бы один чекпоинт.", fieldErrors: {} };
-  if (raw.length > max) return { ok: false, error: `Максимум ${max} чекпоинтов.`, fieldErrors: {} };
+  if (!Array.isArray(raw)) return { ok: false, error: m.validation.routeUnreadable, fieldErrors: {} };
+  if (raw.length < min) return { ok: false, error: m.validation.routeEmpty, fieldErrors: {} };
+  if (raw.length > max) return { ok: false, error: m.validation.routeMax(max), fieldErrors: {} };
 
   const fieldErrors: Partial<Record<RouteDraftError, string>> = {};
   const titles: string[] = [];
@@ -58,41 +55,41 @@ export function parseRouteDraft(raw: unknown): RouteDraftResult {
 
   raw.forEach((item, index) => {
     const entry = isRecord(item) ? item : {};
-    const title = validateCheckpointTitle(typeof entry.title === "string" ? entry.title : "");
+    const title = validateCheckpointTitle(typeof entry.title === "string" ? entry.title : "", m);
     if (!title.ok) fieldErrors[`checkpoint-${index}`] = title.error;
     titles.push(title.ok ? title.value : "");
 
     const task = isRecord(entry.task) ? entry.task : {};
     const question = cleanQuestion(typeof task.question === "string" ? task.question : "");
-    if (length(question) < TASK_LIMITS.question.min) fieldErrors[`question-${index}`] = "Введите вопрос.";
+    if (length(question) < TASK_LIMITS.question.min) fieldErrors[`question-${index}`] = m.validation.questionEmpty;
     else if (length(question) > TASK_LIMITS.question.max) {
-      fieldErrors[`question-${index}`] = `Вопрос — максимум ${TASK_LIMITS.question.max} символов.`;
+      fieldErrors[`question-${index}`] = m.validation.questionLong(TASK_LIMITS.question.max);
     }
 
     if (task.type === "single_choice") {
       const options = Array.isArray(task.options) ? task.options.map((o) => (typeof o === "string" ? cleanText(o) : "")) : [];
       const correct = task.correctOption;
       if (options.length < TASK_LIMITS.options.min || options.length > TASK_LIMITS.options.max) {
-        fieldErrors[`options-${index}`] = `Нужно от ${TASK_LIMITS.options.min} до ${TASK_LIMITS.options.max} вариантов.`;
+        fieldErrors[`options-${index}`] = m.validation.optionsCount(TASK_LIMITS.options.min, TASK_LIMITS.options.max);
       } else if (options.some((option) => length(option) < TASK_LIMITS.option.min)) {
-        fieldErrors[`options-${index}`] = "Заполните все варианты ответа.";
+        fieldErrors[`options-${index}`] = m.validation.optionsEmpty;
       } else if (options.some((option) => length(option) > TASK_LIMITS.option.max)) {
-        fieldErrors[`options-${index}`] = `Вариант ответа — максимум ${TASK_LIMITS.option.max} символов.`;
+        fieldErrors[`options-${index}`] = m.validation.optionLong(TASK_LIMITS.option.max);
       } else if (new Set(options.map((option) => option.toLowerCase())).size !== options.length) {
-        fieldErrors[`options-${index}`] = "Варианты ответа не должны повторяться.";
+        fieldErrors[`options-${index}`] = m.validation.optionsDuplicate;
       } else if (!Number.isInteger(correct) || (correct as number) < 0 || (correct as number) >= options.length) {
-        fieldErrors[`answer-${index}`] = "Отметьте правильный вариант.";
+        fieldErrors[`answer-${index}`] = m.validation.correctOption;
       }
       tasks.push({ type: "single_choice", question, options, correctOption: Number(correct) });
     } else if (task.type === "short_answer") {
       const answer = cleanText(typeof task.correctAnswer === "string" ? task.correctAnswer : "");
-      if (length(answer) < TASK_LIMITS.answer.min) fieldErrors[`answer-${index}`] = "Введите правильный ответ.";
+      if (length(answer) < TASK_LIMITS.answer.min) fieldErrors[`answer-${index}`] = m.validation.answerEmpty;
       else if (length(answer) > TASK_LIMITS.answer.max) {
-        fieldErrors[`answer-${index}`] = `Ответ — максимум ${TASK_LIMITS.answer.max} символов.`;
+        fieldErrors[`answer-${index}`] = m.validation.answerLong(TASK_LIMITS.answer.max);
       }
       tasks.push({ type: "short_answer", question, correctAnswer: answer });
     } else {
-      fieldErrors[`question-${index}`] = "Выберите тип задания.";
+      fieldErrors[`question-${index}`] = m.validation.taskType;
     }
   });
 

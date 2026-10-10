@@ -23,7 +23,7 @@ const team = (id: string, position: number): LobbyTeam => ({
 
 describe("route labels", () => {
   it("names START, checkpoints and FINISH", () => {
-    expect(route.map(pointLabel)).toEqual(["Старт", "Чекпоинт 1", "Чекпоинт 2", "Финиш"]);
+    expect(route.map((point) => pointLabel(point))).toEqual(["Старт", "Чекпоинт 1", "Чекпоинт 2", "Финиш"]);
     expect(pointName(route[2])).toBe("Чекпоинт 2 · Проценты");
     expect(pointName(route[3])).toBe("Финиш");
     expect(checkpointCount(route)).toBe(2);

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ButtonLink } from "@/components/ui/button-link";
+import { HomeButton } from "@/components/home-button";
 
 type NoticeCardProps = {
   badge: string;
@@ -23,19 +23,7 @@ export function NoticeCard({ badge, title, description, icon, children }: Notice
         <h1 className="mt-4 font-display text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
         <p className="mx-auto mt-3 max-w-md text-ink-muted">{description}</p>
         {children}
-        <ButtonLink href="/" variant="secondary" className="mt-8 w-full sm:w-auto">
-          <svg viewBox="0 0 20 20" aria-hidden="true" className="size-5">
-            <path
-              d="M12 5l-5 5 5 5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          На главную
-        </ButtonLink>
+        <HomeButton />
       </div>
     </main>
   );

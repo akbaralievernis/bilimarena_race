@@ -4,6 +4,8 @@
  * friendly messages, not for security.
  */
 
+import { ru, type Messages } from "@/lib/i18n/messages/ru";
+
 export const ROOM_CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 export const ROOM_CODE_LENGTH = 6;
 
@@ -44,14 +46,14 @@ export function formatRoomCode(code: string): string {
   return code.length === ROOM_CODE_LENGTH ? `${code.slice(0, 3)} ${code.slice(3)}` : code;
 }
 
-export function validateRoomCode(input: string): Validation {
+export function validateRoomCode(input: string, m: Messages = ru): Validation {
   const value = normalizeRoomCode(input);
-  if (value === "") return { ok: false, error: "Введите код гонки." };
+  if (value === "") return { ok: false, error: m.validation.codeEmpty };
   if (value.length !== ROOM_CODE_LENGTH) {
-    return { ok: false, error: "Код гонки состоит из 6 символов." };
+    return { ok: false, error: m.validation.codeLength };
   }
   if (!isValidRoomCode(value)) {
-    return { ok: false, error: "В кодах нет символов 0, 1, O и I — проверьте код." };
+    return { ok: false, error: m.validation.codeChars };
   }
   return { ok: true, value };
 }
@@ -65,47 +67,47 @@ function length(value: string): number {
   return [...value].length;
 }
 
-export function validateDisplayName(input: string): Validation {
+export function validateDisplayName(input: string, m: Messages = ru): Validation {
   const value = cleanText(input);
   const { min, max } = LIMITS.displayName;
-  if (length(value) < min) return { ok: false, error: "Введите имя — хотя бы 2 символа." };
-  if (length(value) > max) return { ok: false, error: `Имя слишком длинное — максимум ${max} символов.` };
+  if (length(value) < min) return { ok: false, error: m.validation.nameShort };
+  if (length(value) > max) return { ok: false, error: m.validation.nameLong(max) };
   if (!/^[\p{L}\p{M}\p{N} .'’-]+$/u.test(value)) {
-    return { ok: false, error: "Используйте буквы, цифры, пробел, точку, дефис или апостроф." };
+    return { ok: false, error: m.validation.nameChars };
   }
-  if (!/\p{L}/u.test(value)) return { ok: false, error: "Имя должно содержать хотя бы одну букву." };
+  if (!/\p{L}/u.test(value)) return { ok: false, error: m.validation.nameLetter };
   return { ok: true, value };
 }
 
-export function validateRaceTitle(input: string): Validation {
+export function validateRaceTitle(input: string, m: Messages = ru): Validation {
   const value = cleanText(input);
   const { min, max } = LIMITS.raceTitle;
-  if (length(value) < min) return { ok: false, error: `Название — хотя бы ${min} символа.` };
-  if (length(value) > max) return { ok: false, error: `Название слишком длинное — максимум ${max} символов.` };
+  if (length(value) < min) return { ok: false, error: m.validation.titleShort(min) };
+  if (length(value) > max) return { ok: false, error: m.validation.titleLong(max) };
   return { ok: true, value };
 }
 
-export function validateRaceDescription(input: string): Validation<string | null> {
+export function validateRaceDescription(input: string, m: Messages = ru): Validation<string | null> {
   const value = input.trim();
   if (value === "") return { ok: true, value: null };
   const { max } = LIMITS.raceDescription;
-  if (length(value) > max) return { ok: false, error: `Описание слишком длинное — максимум ${max} символов.` };
+  if (length(value) > max) return { ok: false, error: m.validation.descriptionLong(max) };
   return { ok: true, value };
 }
 
-export function validateTeamName(input: string): Validation {
+export function validateTeamName(input: string, m: Messages = ru): Validation {
   const value = cleanText(input);
   const { min, max } = LIMITS.teamName;
-  if (length(value) < min) return { ok: false, error: "Введите название команды." };
-  if (length(value) > max) return { ok: false, error: `Название команды — максимум ${max} символов.` };
+  if (length(value) < min) return { ok: false, error: m.validation.teamEmpty };
+  if (length(value) > max) return { ok: false, error: m.validation.teamLong(max) };
   return { ok: true, value };
 }
 
-export function validateCheckpointTitle(input: string): Validation {
+export function validateCheckpointTitle(input: string, m: Messages = ru): Validation {
   const value = cleanText(input);
   const { min, max } = LIMITS.checkpointTitle;
-  if (length(value) < min) return { ok: false, error: "Введите название чекпоинта." };
-  if (length(value) > max) return { ok: false, error: `Название чекпоинта — максимум ${max} символов.` };
+  if (length(value) < min) return { ok: false, error: m.validation.checkpointEmpty };
+  if (length(value) > max) return { ok: false, error: m.validation.checkpointLong(max) };
   return { ok: true, value };
 }
 
@@ -114,14 +116,14 @@ export type RouteValidation =
   | { ok: false; error?: string; itemErrors: Record<number, string> };
 
 /** Checkpoint titles in route order. Positions are assigned by the database. */
-export function validateRoute(titles: string[]): RouteValidation {
+export function validateRoute(titles: string[], m: Messages = ru): RouteValidation {
   const { min, max } = LIMITS.route;
-  if (titles.length < min) return { ok: false, error: "Добавьте хотя бы один чекпоинт.", itemErrors: {} };
-  if (titles.length > max) return { ok: false, error: `Максимум ${max} чекпоинтов.`, itemErrors: {} };
+  if (titles.length < min) return { ok: false, error: m.validation.routeEmpty, itemErrors: {} };
+  if (titles.length > max) return { ok: false, error: m.validation.routeMax(max), itemErrors: {} };
 
   const itemErrors: Record<number, string> = {};
   const value = titles.map((title, index) => {
-    const checked = validateCheckpointTitle(title);
+    const checked = validateCheckpointTitle(title, m);
     if (!checked.ok) itemErrors[index] = checked.error;
     return checked.ok ? checked.value : "";
   });

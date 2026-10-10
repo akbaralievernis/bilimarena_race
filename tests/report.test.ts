@@ -105,7 +105,7 @@ describe("figures", () => {
   });
 
   it("formats durations", () => {
-    expect([45, 60, 185, 3720].map(formatDuration)).toEqual(["45 с", "1 мин 00 с", "3 мин 05 с", "1 ч 02 мин"]);
+    expect([45, 60, 185, 3720].map((n) => formatDuration(n))).toEqual(["45 с", "1 мин 00 с", "3 мин 05 с", "1 ч 02 мин"]);
   });
 });
 

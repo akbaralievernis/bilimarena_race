@@ -4,11 +4,11 @@ import { EXTEND_SECONDS, TIME_LIMIT_MAX_SECONDS, extendedLimit, formatClock, min
 
 describe("timer formatting", () => {
   it("shows minutes and seconds, hours only when needed", () => {
-    expect([0, 9, 75, 600, 3599, 3725, -5].map(formatClock)).toEqual(["0:00", "0:09", "1:15", "10:00", "59:59", "1:02:05", "0:00"]);
+    expect([0, 9, 75, 600, 3599, 3725, -5].map((n) => formatClock(n))).toEqual(["0:00", "0:09", "1:15", "10:00", "59:59", "1:02:05", "0:00"]);
   });
 
   it("declines «минута»", () => {
-    expect([60, 120, 300, 660, 1260, 1320, 5400].map(minutesLabel)).toEqual([
+    expect([60, 120, 300, 660, 1260, 1320, 5400].map((n) => minutesLabel(n))).toEqual([
       "1 минута",
       "2 минуты",
       "5 минут",

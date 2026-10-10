@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { NoticeCard } from "@/components/notice-card";
 import { buttonClass } from "@/components/ui/button-styles";
 
@@ -23,21 +24,22 @@ const icon = (
  * (and in the server logs under `digest`), never on the screen.
  */
 export default function ErrorPage({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
+  const { m } = useI18n();
   useEffect(() => {
     console.error(error);
   }, [error]);
 
   return (
     <NoticeCard
-      badge="Сбой"
-      title="Что-то пошло не так"
-      description="Страница не загрузилась. Попробуйте ещё раз — гонка и ответы команд сохранены на сервере."
+      badge={m.notices.errorBadge}
+      title={m.notices.errorTitle}
+      description={m.notices.errorText}
       icon={icon}
     >
       <button type="button" onClick={() => retry()} className={buttonClass({ className: "mt-8 w-full sm:w-auto" })}>
-        Попробовать ещё раз
+        {m.common.retry}
       </button>
-      {error.digest && <p className="mt-4 font-mono text-xs text-ink-muted">Код ошибки: {error.digest}</p>}
+      {error.digest && <p className="mt-4 font-mono text-xs text-ink-muted">{m.common.errorCode(error.digest)}</p>}
     </NoticeCard>
   );
 }

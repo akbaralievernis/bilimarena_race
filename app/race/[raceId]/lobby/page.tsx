@@ -1,14 +1,12 @@
-import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { LobbyScreen } from "@/components/lobby/lobby-screen";
 import { RaceUnavailable } from "@/components/race/race-unavailable";
 import { SetupRequired } from "@/components/setup-required";
+import { pageMetadata } from "@/lib/i18n/server";
 import { loadRace } from "@/lib/race/load-race";
 import { isUuid } from "@/lib/race/validation";
 
-export const metadata: Metadata = {
-  title: "Лобби гонки",
-};
+export const generateMetadata = pageMetadata("lobby");
 
 export default async function LobbyPage({ params }: PageProps<"/race/[raceId]/lobby">) {
   const { raceId } = await params;

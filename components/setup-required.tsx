@@ -1,12 +1,14 @@
 import { NoticeCard } from "@/components/notice-card";
+import { getI18n } from "@/lib/i18n/server";
 
 /** Shown when the deployment has no Supabase variables yet. */
-export function SetupRequired() {
+export async function SetupRequired() {
+  const { m } = await getI18n();
   return (
     <NoticeCard
-      badge="Настройка"
-      title="Supabase не подключён"
-      description="Добавьте NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY в .env.local, примените миграции и перезапустите сервер. Инструкция — в README."
+      badge={m.notices.setupBadge}
+      title={m.notices.setupTitle}
+      description={m.notices.setupText}
       icon={
         <svg viewBox="0 0 24 24" aria-hidden="true" className="size-8">
           <path

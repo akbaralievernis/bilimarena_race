@@ -1,9 +1,9 @@
 "use server";
 
 import type { ActionResult } from "@/lib/actions";
-import { SETUP_REQUIRED_MESSAGE } from "@/lib/actions";
 import { getViewer, isTeacher } from "@/lib/auth/viewer";
 import { isSupabaseConfigured } from "@/lib/env";
+import { getI18n } from "@/lib/i18n/server";
 import { raceErrorCode, raceErrorMessage } from "@/lib/race/errors";
 import { parseRouteDraft, type RouteDraftError } from "@/lib/race/tasks";
 import { validateRaceDescription, validateRaceTitle } from "@/lib/race/validation";
@@ -22,12 +22,13 @@ function readRoute(formData: FormData): unknown {
 }
 
 export async function createRaceAction(formData: FormData): Promise<ActionResult<CreateRaceField>> {
-  if (!isSupabaseConfigured()) return { ok: false, message: SETUP_REQUIRED_MESSAGE };
+  const { m } = await getI18n();
+  if (!isSupabaseConfigured()) return { ok: false, message: m.errors.setupRequired };
 
-  const title = validateRaceTitle(String(formData.get("title") ?? ""));
-  const description = validateRaceDescription(String(formData.get("description") ?? ""));
+  const title = validateRaceTitle(String(formData.get("title") ?? ""), m);
+  const description = validateRaceDescription(String(formData.get("description") ?? ""), m);
   // The route editor posts [{ title, task }] in route order as JSON.
-  const route = parseRouteDraft(readRoute(formData));
+  const route = parseRouteDraft(readRoute(formData), m);
 
   if (!title.ok || !description.ok || !route.ok) {
     return {
@@ -42,7 +43,7 @@ export async function createRaceAction(formData: FormData): Promise<ActionResult
 
   // Friendly early exit only: create_race() rejects non-teachers itself.
   if (!isTeacher(await getViewer())) {
-    return { ok: false, message: "Войдите как учитель, чтобы создать гонку." };
+    return { ok: false, message: m.create.signInFirst };
   }
 
   const supabase = await createClient();
@@ -54,8 +55,8 @@ export async function createRaceAction(formData: FormData): Promise<ActionResult
   });
   if (error || typeof data !== "string") {
     const code = raceErrorCode(error);
-    if (code && ROUTE_ERRORS.has(code)) return { ok: false, fieldErrors: { route: raceErrorMessage(error) } };
-    return { ok: false, message: raceErrorMessage(error) };
+    if (code && ROUTE_ERRORS.has(code)) return { ok: false, fieldErrors: { route: raceErrorMessage(error, {}, m) } };
+    return { ok: false, message: raceErrorMessage(error, {}, m) };
   }
 
   return { ok: true, redirectTo: `/race/${data}/lobby` };

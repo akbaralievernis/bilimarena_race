@@ -1,16 +1,15 @@
-import type { Metadata } from "next";
 import { NoticeCard } from "@/components/notice-card";
+import { getI18n, pageMetadata } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Страница не найдена",
-};
+export const generateMetadata = pageMetadata("notFound");
 
-export default function NotFound() {
+export default async function NotFound() {
+  const { m } = await getI18n();
   return (
     <NoticeCard
       badge="404"
-      title="Сошли с маршрута"
-      description="Такой страницы нет. Вернитесь на главную и начните гонку заново."
+      title={m.notices.notFoundTitle}
+      description={m.notices.notFoundText}
       icon={
         <svg viewBox="0 0 24 24" aria-hidden="true" className="size-8">
           <path

@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { plural, PARTICIPANT_FORMS } from "@/lib/format";
+import { ru } from "@/lib/i18n/messages/ru";
 import {
-  DATABASE_NOT_READY_MESSAGE,
-  NETWORK_ERROR_MESSAGE,
-  UNKNOWN_ERROR_MESSAGE,
   authErrorMessage,
   isNetworkError,
   raceErrorCode,
@@ -12,6 +9,10 @@ import {
 import { parseLobby } from "@/lib/race/lobby";
 import { RACE_STATUSES, canTransition, isJoinable, isRaceStatus } from "@/lib/race/status";
 import { safeNextPath } from "@/lib/safe-redirect";
+
+const DATABASE_NOT_READY_MESSAGE = ru.errors.databaseNotReady;
+const NETWORK_ERROR_MESSAGE = ru.errors.network;
+const UNKNOWN_ERROR_MESSAGE = ru.errors.unknown;
 
 describe("race status transitions", () => {
   it("matches the database rule private.can_transition()", () => {
@@ -147,7 +148,7 @@ describe("safeNextPath", () => {
 
 describe("plural", () => {
   it("picks Russian plural forms", () => {
-    expect([1, 2, 5, 11, 21, 22, 25, 111].map((n) => `${n} ${plural(n, PARTICIPANT_FORMS)}`)).toEqual([
+    expect([1, 2, 5, 11, 21, 22, 25, 111].map((n) => ru.lobby.participantsCount(n))).toEqual([
       "1 участник",
       "2 участника",
       "5 участников",

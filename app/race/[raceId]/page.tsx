@@ -1,14 +1,12 @@
-import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { RaceScreen } from "@/components/race/race-screen";
 import { RaceUnavailable } from "@/components/race/race-unavailable";
 import { SetupRequired } from "@/components/setup-required";
+import { pageMetadata } from "@/lib/i18n/server";
 import { loadRace } from "@/lib/race/load-race";
 import { isUuid } from "@/lib/race/validation";
 
-export const metadata: Metadata = {
-  title: "Карта гонки",
-};
+export const generateMetadata = pageMetadata("race");
 
 export default async function RacePage({ params }: PageProps<"/race/[raceId]">) {
   const { raceId } = await params;

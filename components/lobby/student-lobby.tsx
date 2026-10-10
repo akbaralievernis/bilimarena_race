@@ -1,3 +1,6 @@
+"use client";
+
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { RouteStrip } from "@/components/race/route-strip";
 import { ButtonLink } from "@/components/ui/button-link";
 import { teamColor, type LobbySnapshot } from "@/lib/race/lobby";
@@ -19,6 +22,7 @@ function WaitingDots() {
 
 export function StudentLobby({ lobby, connection }: { lobby: LobbySnapshot; connection: ConnectionState }) {
   const { race, viewer } = lobby;
+  const { m } = useI18n();
   const team = lobby.teams.find((candidate) => candidate.id === viewer.teamId) ?? null;
   const color = teamColor(lobby.teams, viewer.teamId);
   const teammates = team ? lobby.participants.filter((participant) => participant.teamId === team.id) : [];
@@ -37,16 +41,17 @@ export function StudentLobby({ lobby, connection }: { lobby: LobbySnapshot; conn
         <h1 className="mt-1 font-display text-2xl font-bold tracking-tight break-words sm:text-3xl">{race.title}</h1>
         {race.description && <p className="mt-2 whitespace-pre-line text-ink-muted">{race.description}</p>}
         <p className="mt-3 text-sm text-ink-muted">
-          Код комнаты: <span className="font-mono font-bold tracking-wider text-ink">{formatRoomCode(race.code)}</span>
+          {m.lobby.roomCode}: <span className="font-mono font-bold tracking-wider text-ink">{formatRoomCode(race.code)}</span>
           {race.timeLimitSeconds !== null && (
             <>
-              {" · "}время гонки: <span className="font-bold text-ink">{minutesLabel(race.timeLimitSeconds)}</span>
+              {" · "}
+              {m.lobby.raceTime}: <span className="font-bold text-ink">{minutesLabel(race.timeLimitSeconds, m)}</span>
             </>
           )}
         </p>
 
         <div className="mt-8 rounded-2xl bg-canvas px-5 py-4 ring-1 ring-line">
-          <p className="text-sm font-semibold text-ink-muted">Ты подключён как:</p>
+          <p className="text-sm font-semibold text-ink-muted">{m.lobby.joinedAs}</p>
           <p className="mt-1 font-display text-xl font-bold break-words">{viewer.displayName}</p>
         </div>
 
@@ -54,12 +59,12 @@ export function StudentLobby({ lobby, connection }: { lobby: LobbySnapshot; conn
         <div key={viewer.teamId ?? "none"} className="animate-pop-in mt-4">
           {team ? (
             <div className="rounded-2xl px-5 py-4" style={{ boxShadow: `inset 0 0 0 2px ${color ?? "#E4E7F0"}` }}>
-              <p className="text-sm font-semibold text-ink-muted">Команда:</p>
+              <p className="text-sm font-semibold text-ink-muted">{m.lobby.team}</p>
               <p className="mt-1 flex items-center gap-2.5 font-display text-xl font-bold break-words">
                 <span className="size-3.5 shrink-0 rounded-full" style={{ backgroundColor: color ?? undefined }} aria-hidden="true" />
                 {team.name}
               </p>
-              <p className="mt-4 text-sm font-semibold text-ink-muted">Участники команды:</p>
+              <p className="mt-4 text-sm font-semibold text-ink-muted">{m.lobby.teamMembers}</p>
               <ul className="mt-2 flex flex-wrap gap-1.5">
                 {teammates.map((member) => (
                   <li
@@ -69,21 +74,21 @@ export function StudentLobby({ lobby, connection }: { lobby: LobbySnapshot; conn
                     }`}
                   >
                     {member.displayName}
-                    {member.id === viewer.participantId && <span className="sr-only"> (это вы)</span>}
+                    {member.id === viewer.participantId && <span className="sr-only">{m.lobby.itsYou}</span>}
                   </li>
                 ))}
               </ul>
             </div>
           ) : (
             <div className="rounded-2xl border-2 border-dashed border-line px-5 py-4">
-              <p className="font-bold">Команда пока не назначена</p>
-              <p className="mt-1 text-sm text-ink-muted">Учитель скоро распределит участников по командам.</p>
+              <p className="font-bold">{m.lobby.noTeamTitle}</p>
+              <p className="mt-1 text-sm text-ink-muted">{m.lobby.noTeamText}</p>
             </div>
           )}
         </div>
 
         <div className="mt-6">
-          <p className="text-sm font-semibold text-ink-muted">Маршрут:</p>
+          <p className="text-sm font-semibold text-ink-muted">{m.lobby.routeLabel}</p>
           <div className="mt-2">
             <RouteStrip route={lobby.route} />
           </div>
@@ -92,16 +97,16 @@ export function StudentLobby({ lobby, connection }: { lobby: LobbySnapshot; conn
         <div className="mt-8 text-center" role="status">
           {race.status === "running" ? (
             <>
-              <p className="font-display text-xl font-bold text-teal-strong">Гонка началась!</p>
+              <p className="font-display text-xl font-bold text-teal-strong">{m.lobby.started}</p>
               <ButtonLink href={`/race/${race.id}`} className="mt-4 w-full sm:w-auto">
-                Открыть карту гонки
+                {m.lobby.openMap}
               </ButtonLink>
             </>
           ) : race.status === "finished" ? (
-            <p className="font-display text-xl font-bold">Гонка завершена. Спасибо за участие!</p>
+            <p className="font-display text-xl font-bold">{m.lobby.finished}</p>
           ) : (
             <p className="font-display text-lg font-bold text-ink-muted">
-              Ожидаем начала гонки
+              {m.lobby.waiting}
               <WaitingDots />
             </p>
           )}

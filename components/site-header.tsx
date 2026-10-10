@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AccountMenu } from "@/components/auth/account-menu";
 import { BrandMark } from "@/components/brand-mark";
+import { LanguageSwitch } from "@/components/i18n/language-switch";
 
 export function SiteHeader() {
   return (
@@ -10,11 +11,16 @@ export function SiteHeader() {
         className="group inline-flex shrink-0 items-center gap-2.5 rounded-xl font-display text-lg font-bold tracking-tight"
       >
         <BrandMark className="size-9 transition-transform duration-300 group-hover:-rotate-6" />
+        {/* Narrow phones: the language switch needs the room, "Bilim Arena" stays for screen readers. */}
         <span>
-          Bilim Arena <span className="text-brand">Race</span>
+          <span className="max-[419px]:sr-only">Bilim Arena </span>
+          <span className="text-brand">Race</span>
         </span>
       </Link>
-      <AccountMenu />
+      <div className="flex min-w-0 items-center gap-2">
+        <LanguageSwitch />
+        <AccountMenu />
+      </div>
     </header>
   );
 }

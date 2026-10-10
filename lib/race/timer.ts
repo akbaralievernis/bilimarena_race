@@ -1,3 +1,5 @@
+import { ru, type Messages } from "@/lib/i18n/messages/ru";
+
 /*
  * Stage 7: race timer. The database owns the clock (ends_at, remainingSeconds
  * by the server's time); these helpers only format and offer choices.
@@ -24,14 +26,9 @@ export function formatClock(seconds: number): string {
   return hours > 0 ? `${hours}:${String(minutes).padStart(2, "0")}:${rest}` : `${minutes}:${rest}`;
 }
 
-/** 600 → "10 минут", 60 → "1 минута", 300 → "5 минут". */
-export function minutesLabel(seconds: number): string {
-  const minutes = Math.round(seconds / 60);
-  const lastTwo = minutes % 100;
-  const last = minutes % 10;
-  const word =
-    lastTwo >= 11 && lastTwo <= 14 ? "минут" : last === 1 ? "минута" : last >= 2 && last <= 4 ? "минуты" : "минут";
-  return `${minutes} ${word}`;
+/** 600 → "10 минут" / "10 мүнөт". */
+export function minutesLabel(seconds: number, m: Messages = ru): string {
+  return m.timer.minutes(seconds);
 }
 
 /** The limit after "+5 минут", or null when it would exceed the maximum. */

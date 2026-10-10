@@ -6,6 +6,3 @@ export function plural(count: number, [one, few, many]: readonly [string, string
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
   return many;
 }
-
-export const PARTICIPANT_FORMS = ["участник", "участника", "участников"] as const;
-export const TEAM_FORMS = ["команда", "команды", "команд"] as const;

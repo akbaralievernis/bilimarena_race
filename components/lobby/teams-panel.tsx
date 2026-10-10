@@ -2,9 +2,9 @@
 
 import { useState, type FormEvent } from "react";
 import { createTeamAction, deleteTeamAction, renameTeamAction } from "@/app/race/[raceId]/lobby/actions";
+import { useI18n } from "@/components/i18n/i18n-provider";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { PARTICIPANT_FORMS, plural } from "@/lib/format";
 import { teamColor, type LobbySnapshot, type LobbyTeam } from "@/lib/race/lobby";
 import { LIMITS, validateTeamName } from "@/lib/race/validation";
 import type { ActionRunner } from "./use-action-runner";
@@ -14,13 +14,14 @@ const inputClass =
   "placeholder:text-ink-muted/70 hover:ring-brand/40 focus:ring-2 focus:ring-brand focus:outline-none disabled:bg-canvas";
 
 export function TeamsPanel({ lobby, runner, locked }: { lobby: LobbySnapshot; runner: ActionRunner; locked: boolean }) {
+  const { m } = useI18n();
   const [name, setName] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
   const creating = runner.isPending("create-team");
 
   async function createTeam(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const team = validateTeamName(name);
+    const team = validateTeamName(name, m);
     if (!team.ok) {
       setLocalError(team.error);
       return;
@@ -35,7 +36,7 @@ export function TeamsPanel({ lobby, runner, locked }: { lobby: LobbySnapshot; ru
     <section aria-labelledby="teams-heading" className="rounded-card bg-surface p-5 shadow-card ring-1 ring-line sm:p-6">
       <div className="flex items-baseline justify-between gap-3">
         <h2 id="teams-heading" className="font-display text-lg font-bold tracking-tight">
-          Команды
+          {m.lobby.teams}
         </h2>
         <span className="text-sm font-semibold text-ink-muted">{lobby.teams.length} / 20</span>
       </div>
@@ -43,13 +44,13 @@ export function TeamsPanel({ lobby, runner, locked }: { lobby: LobbySnapshot; ru
       {!locked && (
         <form onSubmit={createTeam} className="mt-4 flex gap-2" noValidate>
           <label htmlFor="new-team" className="sr-only">
-            Название новой команды
+            {m.lobby.newTeamLabel}
           </label>
           <input
             id="new-team"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Название команды"
+            placeholder={m.lobby.teamPlaceholder}
             maxLength={LIMITS.teamName.max}
             autoComplete="off"
             disabled={creating}
@@ -57,7 +58,7 @@ export function TeamsPanel({ lobby, runner, locked }: { lobby: LobbySnapshot; ru
             className={inputClass}
           />
           <Button type="submit" size="sm" className="min-h-11 shrink-0" pending={creating}>
-            Добавить
+            {m.common.add}
           </Button>
         </form>
       )}
@@ -65,7 +66,7 @@ export function TeamsPanel({ lobby, runner, locked }: { lobby: LobbySnapshot; ru
 
       {lobby.teams.length === 0 ? (
         <p className="mt-5 rounded-2xl border-2 border-dashed border-line px-4 py-6 text-center text-sm text-ink-muted">
-          Команд пока нет. Создайте, например, «Альфа» и «Бета».
+          {m.lobby.noTeams}
         </p>
       ) : (
         <ul className="mt-5 space-y-3">
@@ -89,6 +90,7 @@ function TeamCard({
   runner: ActionRunner;
   locked: boolean;
 }) {
+  const { m } = useI18n();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(team.name);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -100,7 +102,7 @@ function TeamCard({
 
   async function rename(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const next = validateTeamName(draft);
+    const next = validateTeamName(draft, m);
     if (!next.ok) {
       setLocalError(next.error);
       return;
@@ -118,7 +120,7 @@ function TeamCard({
         {editing ? (
           <form onSubmit={rename} className="flex min-w-0 flex-1 flex-wrap gap-2" noValidate>
             <label htmlFor={`team-name-${team.id}`} className="sr-only">
-              Новое название команды
+              {m.lobby.renameLabel}
             </label>
             <input
               id={`team-name-${team.id}`}
@@ -131,7 +133,7 @@ function TeamCard({
             />
             <div className="flex gap-1">
               <Button type="submit" size="sm" pending={runner.isPending(renameKey)}>
-                Сохранить
+                {m.common.save}
               </Button>
               <Button
                 variant="ghost"
@@ -143,7 +145,7 @@ function TeamCard({
                   runner.clearError(renameKey);
                 }}
               >
-                Отмена
+                {m.common.cancel}
               </Button>
             </div>
           </form>
@@ -153,7 +155,7 @@ function TeamCard({
               {team.name}
             </h3>
             <span className="shrink-0 text-sm text-ink-muted">
-              {team.memberCount} {plural(team.memberCount, PARTICIPANT_FORMS)}
+              {m.lobby.participantsCount(team.memberCount)}
             </span>
           </>
         )}
@@ -168,7 +170,7 @@ function TeamCard({
           ))}
         </ul>
       ) : (
-        <p className="mt-3 text-sm text-ink-muted">Пока никого нет.</p>
+        <p className="mt-3 text-sm text-ink-muted">{m.lobby.nobodyYet}</p>
       )}
 
       {!locked && !editing && (
@@ -181,17 +183,17 @@ function TeamCard({
               setEditing(true);
             }}
           >
-            Переименовать
+            {m.common.rename}
           </Button>
           <Button
             variant="danger"
             size="sm"
             disabled={team.memberCount > 0}
-            title={team.memberCount > 0 ? "Сначала уберите участников из команды" : undefined}
+            title={team.memberCount > 0 ? m.lobby.removeMembersFirst : undefined}
             pending={runner.isPending(deleteKey)}
             onClick={() => runner.run(deleteKey, () => deleteTeamAction(team.id))}
           >
-            Удалить
+            {m.common.delete}
           </Button>
         </div>
       )}

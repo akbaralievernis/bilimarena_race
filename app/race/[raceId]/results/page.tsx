@@ -1,16 +1,13 @@
-import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { NoticeCard } from "@/components/notice-card";
 import { RaceReportView } from "@/components/report/race-report";
 import { RaceUnavailable } from "@/components/race/race-unavailable";
 import { SetupRequired } from "@/components/setup-required";
-import { DATABASE_NOT_READY_MESSAGE } from "@/lib/race/errors";
+import { getI18n, pageMetadata } from "@/lib/i18n/server";
 import { loadReport } from "@/lib/race/load-report";
 import { isUuid } from "@/lib/race/validation";
 
-export const metadata: Metadata = {
-  title: "Отчёт по гонке",
-};
+export const generateMetadata = pageMetadata("results");
 
 const chartIcon = (
   <svg viewBox="0 0 24 24" aria-hidden="true" className="size-8">
@@ -25,15 +22,23 @@ export default async function RaceResultsPage({ params }: PageProps<"/race/[race
   const result = await loadReport(raceId);
   if (result.kind === "setup") return <SetupRequired />;
   if (result.kind === "signed-out") redirect(`/login?next=/race/${raceId}/results`);
+  const { m } = await getI18n();
   if (result.kind === "not-ready") {
-    return <NoticeCard badge="Нужна миграция" title="Отчёт пока недоступен" description={DATABASE_NOT_READY_MESSAGE} icon={chartIcon} />;
+    return (
+      <NoticeCard
+        badge={m.notices.reportMigrationBadge}
+        title={m.notices.reportUnavailableTitle}
+        description={m.errors.databaseNotReady}
+        icon={chartIcon}
+      />
+    );
   }
   if (result.kind === "denied") {
     return (
       <NoticeCard
-        badge="Нет доступа"
-        title="Отчёт недоступен"
-        description="Отчёт видит только учитель, который создал гонку. Проверьте, что вы вошли в свой аккаунт."
+        badge={m.notices.deniedBadge}
+        title={m.notices.reportDeniedTitle}
+        description={m.notices.reportDeniedText}
         icon={chartIcon}
       />
     );
@@ -42,7 +47,7 @@ export default async function RaceResultsPage({ params }: PageProps<"/race/[race
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-2 pb-16 sm:px-6 lg:px-8 lg:pt-4">
-      <RaceReportView report={result.report} />
+      <RaceReportView report={result.report} m={m} />
     </main>
   );
 }
