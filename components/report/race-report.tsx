@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { StatusBadge } from "@/components/lobby/status-badge";
+import { DuplicateRaceButton } from "@/components/race/duplicate-race-button";
 import { PlaceBadge } from "@/components/race/leaderboard";
 import { ButtonLink } from "@/components/ui/button-link";
 import type { Messages } from "@/lib/i18n/config";
@@ -176,9 +177,12 @@ export function RaceReportView({ report, m }: { report: RaceReport; m: Messages 
             <StatusBadge status={race.status} />
             <span className="font-mono text-sm tracking-wider text-ink-muted">{formatRoomCode(race.code)}</span>
           </div>
-          <ButtonLink href={`/race/${race.id}`} variant="secondary" size="sm">
-            {m.report.raceMap}
-          </ButtonLink>
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href={`/race/${race.id}`} variant="secondary" size="sm">
+              {m.report.raceMap}
+            </ButtonLink>
+            {race.status === "finished" && <DuplicateRaceButton raceId={race.id} title={race.title} label={m.race.runAgain} />}
+          </div>
         </div>
         <p className="mt-4 text-sm font-bold text-teal-strong">{m.report.eyebrow}</p>
         <h1 className="mt-1 font-display text-2xl font-bold tracking-tight break-words sm:text-3xl">{race.title}</h1>

@@ -6,7 +6,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { getI18n } from "@/lib/i18n/server";
 import { raceErrorCode, raceErrorMessage } from "@/lib/race/errors";
 import { parseRouteDraft, type RouteDraftError } from "@/lib/race/tasks";
-import { validateRaceDescription, validateRaceTitle } from "@/lib/race/validation";
+import { isUuid, validateRaceDescription, validateRaceTitle } from "@/lib/race/validation";
 import { createClient } from "@/lib/supabase/server";
 
 export type CreateRaceField = "title" | "description" | "route" | RouteDraftError;
@@ -59,5 +59,23 @@ export async function createRaceAction(formData: FormData): Promise<ActionResult
     return { ok: false, message: raceErrorMessage(error, {}, m) };
   }
 
+  return { ok: true, redirectTo: `/race/${data}/lobby` };
+}
+
+/**
+ * Stage 9: the same race again for another class — duplicate_race() copies the
+ * route, tasks, time limit and team names (owner only) and the teacher lands
+ * in the new lobby with a new room code.
+ */
+export async function duplicateRaceAction(raceId: unknown): Promise<ActionResult> {
+  const { m } = await getI18n();
+  if (!isSupabaseConfigured()) return { ok: false, message: m.errors.setupRequired };
+  if (typeof raceId !== "string" || !isUuid(raceId)) return { ok: false, message: m.errors.invalidRequest };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("duplicate_race", { p_race_id: raceId });
+  if (error || typeof data !== "string") {
+    return { ok: false, message: raceErrorMessage(error, { race_not_found: m.errors.raceNotFoundAction }, m) };
+  }
   return { ok: true, redirectTo: `/race/${data}/lobby` };
 }

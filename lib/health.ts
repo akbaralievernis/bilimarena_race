@@ -25,6 +25,7 @@ export const SCHEMA_MARKERS = [
   { stage: 4, kind: "column", name: "task_submissions.points" },
   { stage: 5, kind: "rpc", name: "get_race_report", args: { p_race_id: null } },
   { stage: 7, kind: "rpc", name: "set_race_time_limit", args: { p_race_id: null, p_seconds: null } },
+  { stage: 9, kind: "rpc", name: "duplicate_race", args: { p_race_id: null } },
 ] as const;
 
 const TIMEOUT_MS = 6_000;

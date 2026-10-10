@@ -7,6 +7,10 @@ import { plural } from "@/lib/format";
  * sentence, because word order and plural forms differ between languages.
  */
 
+/** Rows of an example table as Excel copies them: cells by tab, rows by line break. */
+export const exampleTable = (rows: string[][]) =>
+  rows.map((cells) => cells.join(String.fromCharCode(9))).join(String.fromCharCode(10));
+
 const points = (n: number) => plural(Math.abs(n), ["очко", "очка", "очков"]);
 const minutes = (n: number) => plural(n, ["минута", "минуты", "минут"]);
 const checkpoints = (n: number) => plural(n, ["чекпоинта", "чекпоинтов", "чекпоинтов"]);
@@ -204,6 +208,9 @@ export const ru = {
     noRaces: "Здесь появятся созданные гонки — чтобы вернуться в лобби.",
     report: "Отчёт",
     reportFor: (title: string) => `Отчёт: ${title}`,
+    duplicate: "Повторить",
+    duplicateFor: (title: string) => `Повторить гонку «${title}» для другого класса`,
+    duplicating: "Копируем…",
   },
 
   route: {
@@ -227,6 +234,21 @@ export const ru = {
     add: "Добавить чекпоинт",
     max: (n: number) => `Максимум ${n} ${checkpoints(n)}`,
     taskTypes: { single_choice: "Выбор ответа", short_answer: "Короткий ответ" },
+    import: {
+      open: "Вставить из Excel",
+      title: "Задания из таблицы",
+      hint: "Скопируйте строки из Excel или Google Таблиц и вставьте сюда. Столбцы по порядку: название чекпоинта, вопрос, правильный ответ, затем неверные варианты. Без неверных вариантов задание будет с коротким ответом.",
+      label: "Строки таблицы",
+      placeholder: exampleTable([
+        ["Дроби", "Сколько будет 1/2 + 1/4?", "3/4", "2/6", "1/8"],
+        ["Столица", "Столица Кыргызстана?", "Бишкек"],
+      ]),
+      add: "Добавить в маршрут",
+      added: (n: number) => `Добавлено заданий: ${n}. Варианты ответа перемешаны — проверьте маршрут.`,
+      skipped: (lines: string) => `Пропущены строки без вопроса или ответа: ${lines}.`,
+      truncated: (max: number) => `В маршруте не больше ${max} чекпоинтов — лишние строки не добавлены.`,
+      empty: "Не нашли ни одной строки с вопросом и ответом.",
+    },
   },
 
   validation: {
@@ -434,6 +456,8 @@ export const ru = {
     lobbyLink: "Лобби: команды и участники",
     resultsHint: "Места: сначала финишировавшие по времени, затем по позиции на карте и очкам.",
     fullReport: "Подробный отчёт: задания, ученики, CSV",
+    runAgain: "Провести ещё раз",
+    runAgainHint: "Новая гонка с тем же маршрутом, заданиями и командами — с новым кодом для другого класса.",
     checkpointsCount: (n: number) => `Чекпоинтов: ${n}`,
     teamsAndPoints: "Команды и очки",
     noTeamsTeacher: "Команд пока нет — создайте их в лобби.",
@@ -553,7 +577,7 @@ export const ru = {
       signup: "Регистрация учителей",
       signupClosed: "закрыта (новые учителя не смогут зарегистрироваться)",
       signupOpen: "открыта",
-      schema: "Миграции базы (этапы 1–7)",
+      schema: "Миграции базы (этапы 1–9)",
       schemaMissing: (stages: string) => `Не применены этапы: ${stages}. Примените миграции из supabase/migrations.`,
       schemaUnknown: "Не удалось проверить — обновите страницу.",
       schemaOk: "все применены",

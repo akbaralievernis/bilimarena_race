@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SetupRequired } from "@/components/setup-required";
 import { StatusBadge } from "@/components/lobby/status-badge";
+import { DuplicateRaceButton } from "@/components/race/duplicate-race-button";
 import { getViewer, isTeacher } from "@/lib/auth/viewer";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getI18n, pageMetadata } from "@/lib/i18n/server";
@@ -60,10 +61,10 @@ export default async function CreateRacePage() {
         ) : (
           <ul className="mt-4 space-y-2">
             {races.map((race) => (
-              <li key={race.id} className="flex items-stretch gap-2">
+              <li key={race.id} className="rounded-2xl ring-1 ring-line">
                 <Link
                   href={`/race/${race.id}/lobby`}
-                  className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-3 py-3 ring-1 ring-line transition hover:bg-canvas hover:ring-brand/40"
+                  className="flex min-w-0 items-center gap-3 rounded-2xl px-3 py-3 transition hover:bg-canvas"
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-bold">{race.title}</span>
@@ -74,13 +75,18 @@ export default async function CreateRacePage() {
                   <StatusBadge status={race.status} />
                 </Link>
                 {race.status !== "draft" && race.status !== "lobby" && (
-                  <Link
-                    href={`/race/${race.id}/results`}
-                    className="grid shrink-0 place-items-center rounded-2xl px-3 text-sm font-bold text-brand-strong ring-1 ring-line transition hover:bg-brand-soft hover:ring-brand/40"
-                    aria-label={m.create.reportFor(race.title)}
-                  >
-                    {m.create.report}
-                  </Link>
+                  <div className="flex flex-wrap gap-2 border-t border-line px-3 py-2">
+                    <Link
+                      href={`/race/${race.id}/results`}
+                      className="inline-flex min-h-9 items-center rounded-xl px-3 text-sm font-bold text-brand-strong transition hover:bg-brand-soft"
+                      aria-label={m.create.reportFor(race.title)}
+                    >
+                      {m.create.report}
+                    </Link>
+                    {race.status === "finished" && (
+                      <DuplicateRaceButton raceId={race.id} title={race.title} variant="ghost" />
+                    )}
+                  </div>
                 )}
               </li>
             ))}

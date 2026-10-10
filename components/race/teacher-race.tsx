@@ -12,6 +12,7 @@ import { clockTime } from "@/lib/i18n/format";
 import { teamColor, type LobbySnapshot } from "@/lib/race/lobby";
 import { checkpointCount, pointName, teamProgress } from "@/lib/race/route";
 import { accuracy, rulesSummary, standings } from "@/lib/race/scoring";
+import { DuplicateRaceButton } from "./duplicate-race-button";
 import { Leaderboard } from "./leaderboard";
 import { RaceClock } from "./race-clock";
 import { RouteMap } from "./route-map";
@@ -81,9 +82,19 @@ export function TeacherRace({
           <div className="mt-5 grid grid-cols-1">
             <Leaderboard teams={teams} route={route} detailed />
           </div>
-          <ButtonLink href={`/race/${race.id}/results`} className="mt-6 w-full sm:w-auto">
-            {m.race.fullReport}
-          </ButtonLink>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <ButtonLink href={`/race/${race.id}/results`} className="w-full sm:w-auto">
+              {m.race.fullReport}
+            </ButtonLink>
+            <DuplicateRaceButton
+              raceId={race.id}
+              title={race.title}
+              label={m.race.runAgain}
+              size="md"
+              className="w-full sm:w-auto"
+            />
+          </div>
+          <p className="mt-2 text-sm text-ink-muted">{m.race.runAgainHint}</p>
         </section>
       )}
 

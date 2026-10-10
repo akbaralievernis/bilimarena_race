@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 import { useI18n } from "@/components/i18n/i18n-provider";
+import type { Messages } from "@/lib/i18n/config";
+import { parseQuestions, shuffled, type ImportedRow } from "@/lib/race/import";
 import type { TaskType } from "@/lib/race/lobby";
 import { TASK_LIMITS } from "@/lib/race/tasks";
 import { LIMITS } from "@/lib/race/validation";
@@ -32,6 +34,113 @@ export function draftItem(id: string): RouteDraftItem {
       correctAnswer: "",
     },
   };
+}
+
+/**
+ * A pasted table row as an editor item. With wrong options it is a choice
+ * (options shuffled, so the right one is not always first), otherwise a short answer.
+ */
+export function draftFromRow(row: ImportedRow, id: string, fallbackTitle: string, random: () => number = Math.random): RouteDraftItem {
+  const base = draftItem(id);
+  const title = row.title || fallbackTitle;
+  if (row.wrong.length === 0) {
+    return { id, title, task: { ...base.task, type: "short_answer", question: row.question, correctAnswer: row.answer } };
+  }
+  const options = shuffled([row.answer, ...row.wrong], random).map((text, index) => ({ id: `${id}-o${index}`, text }));
+  const correct = options.find((option) => option.text === row.answer) ?? options[0];
+  return { id, title, task: { ...base.task, type: "single_choice", question: row.question, options, correctOptionId: correct.id } };
+}
+
+const isBlank = ({ title, task }: RouteDraftItem) =>
+  title.trim() === "" &&
+  task.question.trim() === "" &&
+  task.correctAnswer.trim() === "" &&
+  task.options.every((option) => option.text.trim() === "");
+
+/** "Вставить из Excel": rows copied from a spreadsheet become route items. */
+function ImportPanel({ onImport, m }: { onImport: (rows: ImportedRow[]) => { added: number; truncated: boolean }; m: Messages }) {
+  const t = m.route.import;
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [report, setReport] = useState<string[]>([]);
+
+  function apply() {
+    const { rows, skipped } = parseQuestions(text);
+    if (rows.length === 0) {
+      setReport([t.empty]);
+      return;
+    }
+    const { added, truncated } = onImport(rows);
+    setReport([
+      t.added(added),
+      ...(skipped.length > 0 ? [t.skipped(skipped.join(", "))] : []),
+      ...(truncated ? [t.truncated(LIMITS.route.max)] : []),
+    ]);
+    setText("");
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-xl px-3 text-sm font-bold text-ink-muted ring-1 ring-line transition hover:bg-brand-soft hover:text-brand-strong"
+      >
+        <svg viewBox="0 0 20 20" aria-hidden="true" className="size-4">
+          <path d="M4 3h12v14H4zM4 8h12M4 13h12M9 3v14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+        </svg>
+        {t.open}
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-3 rounded-2xl bg-canvas p-4 ring-1 ring-line">
+      <p className="text-sm font-bold">{t.title}</p>
+      <p id="import-hint" className="mt-1 text-sm text-ink-muted">
+        {t.hint}
+      </p>
+      <label htmlFor="import-rows" className="sr-only">
+        {t.label}
+      </label>
+      <textarea
+        id="import-rows"
+        rows={5}
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        placeholder={t.placeholder}
+        aria-describedby="import-hint"
+        className={`${control} mt-3 py-2 font-mono text-sm`}
+      />
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={apply}
+          disabled={text.trim() === ""}
+          className="min-h-10 rounded-xl bg-brand px-3.5 text-sm font-bold text-white transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {t.add}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            setReport([]);
+          }}
+          className="min-h-10 rounded-xl px-3.5 text-sm font-bold text-ink-muted transition hover:bg-surface"
+        >
+          {m.common.cancel}
+        </button>
+      </div>
+      {report.length > 0 && (
+        <div role="status" className="mt-3 space-y-1 text-sm">
+          {report.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** What the form posts (hidden "route" field): titles and tasks in route order. */
@@ -298,6 +407,19 @@ export function RouteEditor({
     onChange(next);
   }
 
+  function importRows(rows: ImportedRow[]) {
+    // Replace the untouched starter route; otherwise add after what is there.
+    const kept = items.every(isBlank) ? [] : items;
+    const room = Math.max(0, max - kept.length);
+    let next = nextId;
+    const added = rows
+      .slice(0, room)
+      .map((row, index) => draftFromRow(row, `checkpoint-${next++}`, m.common.checkpoint(kept.length + index + 1)));
+    setNextId(next);
+    onChange([...kept, ...added]);
+    return { added: added.length, truncated: rows.length > room };
+  }
+
   const update = (id: string, patch: Partial<RouteDraftItem>) =>
     onChange(items.map((other) => (other.id === id ? { ...other, ...patch } : other)));
 
@@ -312,6 +434,8 @@ export function RouteEditor({
           {items.length} / {max}
         </span>
       </div>
+
+      <ImportPanel onImport={importRows} m={m} />
 
       <ol className="mt-3 space-y-2">
         <FixedPoint label={m.common.start} tone="start" />
