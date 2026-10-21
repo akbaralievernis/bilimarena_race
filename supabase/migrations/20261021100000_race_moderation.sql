@@ -6,6 +6,9 @@
 --                                            unknown codes return null (see below)
 --   get_lobby(race)                          + race.joinLocked
 --   private.clean_text                       + strips invisible and direction-override characters
+--   report_focus_leave(race)                 a student left the race tab while it runs: counted,
+--                                            removed (and banned) on the 3rd time
+--   get_lobby(race)                          + participants[].focusLeaves
 --
 -- Attempt limit: a failed lookup must be remembered, but an exception would roll the
 -- record back, so an unknown code returns null instead of raising race_not_found
@@ -32,6 +35,10 @@ $$;
 -- ---------------------------------------------------------------------------
 
 alter table public.races add column join_locked boolean not null default false;
+
+-- How many times the student left the race tab while the race was running.
+alter table public.participants add column focus_leaves integer not null default 0
+  check (focus_leaves between 0 and 3);
 
 -- Users removed by the teacher: they cannot take a seat in that race again.
 create table private.race_bans (
@@ -95,6 +102,39 @@ declare
   v_race public.races := private.lock_owned_race(p_race_id);
 begin
   update public.races set join_locked = coalesce(p_locked, false) where id = v_race.id;
+end;
+$$;
+
+-- A student's own report: the browser saw the race tab hidden while the race runs.
+-- Browsers cannot stop a student from switching tabs, but they can tell; the 3rd
+-- time the seat is removed like remove_participant does. Only the student can raise
+-- their own count, so it cannot be used against classmates.
+create function public.report_focus_leave(p_race_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := private.require_user_id();
+  v_participant public.participants;
+  v_status public.race_status;
+begin
+  select status into v_status from public.races where id = p_race_id;
+  select * into v_participant from public.participants
+  where race_id = p_race_id and user_id = v_user_id and role = 'student'
+  for update;
+  if not found or v_status is distinct from 'running' then
+    return jsonb_build_object('leaves', coalesce(v_participant.focus_leaves, 0), 'removed', false);
+  end if;
+
+  if v_participant.focus_leaves + 1 >= 3 then
+    insert into private.race_bans (race_id, user_id) values (p_race_id, v_user_id) on conflict do nothing;
+    delete from public.participants where id = v_participant.id;
+    return jsonb_build_object('leaves', 3, 'removed', true);
+  end if;
+  update public.participants set focus_leaves = focus_leaves + 1 where id = v_participant.id;
+  return jsonb_build_object('leaves', v_participant.focus_leaves + 1, 'removed', false);
 end;
 $$;
 
@@ -201,10 +241,19 @@ declare
   -- Checks access and builds the Stage 7 snapshot.
   v_lobby jsonb := private.get_lobby_v7(p_race_id);
 begin
-  return jsonb_set(
+  v_lobby := jsonb_set(
     v_lobby,
     '{race,joinLocked}',
     to_jsonb(coalesce((select join_locked from public.races where id = p_race_id), false))
+  );
+  return jsonb_set(
+    v_lobby,
+    '{participants}',
+    coalesce((
+      select jsonb_agg(e.p || jsonb_build_object('focusLeaves', coalesce(pp.focus_leaves, 0)) order by e.ord)
+      from jsonb_array_elements(coalesce(v_lobby -> 'participants', '[]'::jsonb)) with ordinality as e(p, ord)
+      left join public.participants pp on pp.id = (e.p ->> 'id')::uuid
+    ), '[]'::jsonb)
   );
 end;
 $$;
@@ -215,6 +264,8 @@ grant execute on function public.get_lobby(uuid) to authenticated;
 revoke all on function public.remove_participant(uuid) from public, anon;
 revoke all on function public.set_join_locked(uuid, boolean) from public, anon;
 revoke all on function public.join_race(text, text) from public, anon;
+revoke all on function public.report_focus_leave(uuid) from public, anon;
+grant execute on function public.report_focus_leave(uuid) to authenticated;
 grant execute on function public.remove_participant(uuid) to authenticated;
 grant execute on function public.set_join_locked(uuid, boolean) to authenticated;
 grant execute on function public.join_race(text, text) to authenticated;

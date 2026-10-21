@@ -81,6 +81,15 @@ function ParticipantRow({
         <span className="min-w-0 flex-1 basis-32 truncate font-semibold" title={participant.displayName}>
           {participant.displayName}
         </span>
+        {participant.focusLeaves > 0 && (
+          <span
+            className="shrink-0 rounded-full bg-sun-soft px-2 py-0.5 text-xs font-extrabold text-ink"
+            title={m.focus.badge(participant.focusLeaves, 3)}
+            aria-label={m.focus.badge(participant.focusLeaves, 3)}
+          >
+            ⚠ {participant.focusLeaves}
+          </span>
+        )}
         <div className="flex w-full items-center gap-2 sm:w-auto">
           <label htmlFor={selectId} className="sr-only">
             {m.lobby.teamFor(participant.displayName)}

@@ -7,6 +7,22 @@ import { isUuid } from "@/lib/race/validation";
 import { createClient } from "@/lib/supabase/server";
 
 
+export type FocusLeaveResult = { ok: true; leaves: number; removed: boolean } | { ok: false };
+
+/**
+ * Stage 11: the student's browser saw the race tab hidden while the race runs.
+ * The database counts it (only while running, only for the caller's own seat)
+ * and removes the seat on the 3rd time.
+ */
+export async function reportFocusLeaveAction(raceId: unknown): Promise<FocusLeaveResult> {
+  if (!isSupabaseConfigured() || typeof raceId !== "string" || !isUuid(raceId)) return { ok: false };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("report_focus_leave", { p_race_id: raceId });
+  if (error) return { ok: false };
+  const result = (data ?? {}) as { leaves?: unknown; removed?: unknown };
+  return { ok: true, leaves: typeof result.leaves === "number" ? result.leaves : 0, removed: result.removed === true };
+}
+
 export type AdvanceResult =
   | { ok: true; position: number; finished: boolean; moved: boolean }
   | { ok: false; message: string };

@@ -1,4 +1,4 @@
-import type { LobbyTeam, RoutePoint } from "@/lib/race/lobby";
+import type { LobbyParticipant, LobbyTeam, RoutePoint } from "@/lib/race/lobby";
 
 /*
  * What happened between two live snapshots: who moved, who overtook whom, who
@@ -10,7 +10,8 @@ export type RaceEvent =
   | { kind: "advance"; teamId: string; team: string; position: number }
   | { kind: "finish"; teamId: string; team: string; order: number | null }
   | { kind: "overtake"; teamId: string; team: string; otherId: string; other: string }
-  | { kind: "lead"; teamId: string; team: string };
+  | { kind: "lead"; teamId: string; team: string }
+  | { kind: "focus"; teamId: string | null; team: string; count: number };
 
 const byId = (teams: LobbyTeam[]) => new Map(teams.map((team) => [team.id, team]));
 
@@ -56,6 +57,15 @@ export function diffRace(prev: LobbyTeam[], next: LobbyTeam[], route: RoutePoint
     events.push({ kind: "lead", teamId: newLeader.id, team: newLeader.name });
   }
   return events;
+}
+
+/** Students whose "left the race tab" count went up (Stage 11). */
+export function diffFocus(prev: LobbyParticipant[], next: LobbyParticipant[]): RaceEvent[] {
+  if (prev.length === 0) return [];
+  const before = new Map(prev.map((p) => [p.id, p.focusLeaves]));
+  return next
+    .filter((p) => before.has(p.id) && p.focusLeaves > (before.get(p.id) ?? 0))
+    .map((p) => ({ kind: "focus" as const, teamId: p.teamId, team: p.displayName, count: p.focusLeaves }));
 }
 
 /** Points to the team just above (null for the leader) and the lead over the team just below. */

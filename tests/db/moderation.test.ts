@@ -66,3 +66,28 @@ describe("set_join_locked", () => {
     await expectDbError(t.rpc(student, "set_join_locked", [raceId, true]), "race_not_found");
   });
 });
+
+describe("report_focus_leave", () => {
+  it("counts only while the race runs, shows the count to the teacher, removes on the 3rd time", async () => {
+    const { raceId, code, student, participantId } = await raceWithStudent("Отвлёкся");
+    // Before the start nothing is counted
+    expect(await t.rpc(student, "report_focus_leave", [raceId])).toEqual({ leaves: 0, removed: false });
+    await t.rpc(teacher, "start_race", [raceId]);
+    expect(await t.rpc(student, "report_focus_leave", [raceId])).toEqual({ leaves: 1, removed: false });
+    const lobby = await t.rpc<{ participants: { id: string; focusLeaves: number }[] }>(teacher, "get_lobby", [raceId]);
+    expect(lobby.participants.find((p) => p.id === participantId)?.focusLeaves).toBe(1);
+    expect(await t.rpc(student, "report_focus_leave", [raceId])).toEqual({ leaves: 2, removed: false });
+    expect(await t.rpc(student, "report_focus_leave", [raceId])).toEqual({ leaves: 3, removed: true });
+    expect(await t.admin("select 1 from public.participants where id = $1", [participantId])).toEqual([]);
+    await expectDbError(t.rpc(student, "join_race", [code, "Снова"]), "join_closed");
+  });
+
+  it("a classmate cannot raise someone else's count", async () => {
+    const { raceId, participantId } = await raceWithStudent("Честный");
+    await t.rpc(teacher, "start_race", [raceId]);
+    const outsider = await t.createUser({ anonymous: true });
+    expect(await t.rpc(outsider, "report_focus_leave", [raceId])).toEqual({ leaves: 0, removed: false });
+    const [{ focus_leaves }] = await t.admin<{ focus_leaves: number }>("select focus_leaves from public.participants where id = $1", [participantId]);
+    expect(focus_leaves).toBe(0);
+  });
+});

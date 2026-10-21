@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ky } from "@/lib/i18n/messages/ky";
 import { ru } from "@/lib/i18n/messages/ru";
-import { diffRace, gaps } from "@/lib/race/events";
+import { diffFocus, diffRace, gaps } from "@/lib/race/events";
 import type { LobbyTeam, RoutePoint } from "@/lib/race/lobby";
 import { fanOffsets, layoutTrack, segmentPaths, smoothPath } from "@/lib/race/track";
 
@@ -58,6 +58,14 @@ describe("live race events", () => {
     expect(gaps(teams, "b")).toEqual({ toAbove: 50, overBelow: 150 });
     expect(gaps(teams, "c")).toEqual({ toAbove: 150, overBelow: null });
     expect(gaps(teams, "x")).toEqual({ toAbove: null, overBelow: null });
+  });
+
+  it("reports a student whose left-the-tab count went up", () => {
+    const p = (id: string, focusLeaves: number) => ({ id, displayName: id.toUpperCase(), teamId: "t1", focusLeaves });
+    expect(diffFocus([], [p("s", 1)])).toEqual([]);
+    expect(diffFocus([p("s", 0), p("x", 1)], [p("s", 1), p("x", 1)])).toEqual([
+      { kind: "focus", teamId: "t1", team: "S", count: 1 },
+    ]);
   });
 
   it("speaks both languages", () => {

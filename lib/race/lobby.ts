@@ -48,7 +48,8 @@ export type LobbyTeam = {
   stats: TeamStats | null;
 };
 
-export type LobbyParticipant = { id: string; displayName: string; teamId: string | null };
+/** focusLeaves: Stage 11, times the student left the race tab while it ran (0 on an older database). */
+export type LobbyParticipant = { id: string; displayName: string; teamId: string | null; focusLeaves: number };
 
 export type RoutePointType = "start" | "checkpoint" | "finish";
 
@@ -235,7 +236,12 @@ export function parseLobby(data: unknown): LobbySnapshot {
     ) {
       invalid();
     }
-    return { id: participant.id, displayName: participant.displayName, teamId: participant.teamId };
+    return {
+      id: participant.id,
+      displayName: participant.displayName,
+      teamId: participant.teamId,
+      focusLeaves: isCount(participant.focusLeaves) ? participant.focusLeaves : 0,
+    };
   });
 
   return {
