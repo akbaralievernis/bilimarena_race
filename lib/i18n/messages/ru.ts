@@ -233,6 +233,8 @@ export const ru = {
     checkpointTitle: (n: number) => `Название чекпоинта ${n}`,
     add: "Добавить чекпоинт",
     max: (n: number) => `Максимум ${n} ${checkpoints(n)}`,
+    shuffle: "Перемешать: вариант для другого класса",
+    shuffled: "Порядок чекпоинтов и варианты ответов перемешаны — это новый вариант гонки.",
     taskTypes: { single_choice: "Выбор ответа", short_answer: "Короткий ответ" },
     import: {
       open: "Вставить из Excel",

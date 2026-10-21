@@ -264,7 +264,7 @@ export function parseLobby(data: unknown): LobbySnapshot {
 }
 
 /** Stable colour per team position — the same team keeps its colour for everyone. */
-export const TEAM_COLORS = ["#635BFF", "#21B8A6", "#FFB020", "#FF6B6B", "#3A86FF", "#9B5DE5"] as const;
+export const TEAM_COLORS = ["#E0162B", "#0FA595", "#FFB547", "#3A86FF", "#9B5DE5", "#FF7A59"] as const;
 
 export function teamColor(teams: LobbyTeam[], teamId: string | null): string | null {
   if (!teamId) return null;

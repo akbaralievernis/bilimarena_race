@@ -53,7 +53,7 @@ export function Leaderboard({
     <ol className="space-y-2" aria-label={m.leaderboard.aria}>
       {standings(teams).map((team) => {
         const progress = teamProgress(route, team.position);
-        const color = teamColor(teams, team.id) ?? "#635BFF";
+        const color = teamColor(teams, team.id) ?? "#E0162B";
         const own = team.id === ownTeamId;
         const share = detailed ? accuracy(team.stats) : null;
         return (
