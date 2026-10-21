@@ -1,6 +1,6 @@
 "use client";
 
-import { assignParticipantAction } from "@/app/race/[raceId]/lobby/actions";
+import { assignParticipantAction, removeParticipantAction } from "@/app/race/[raceId]/lobby/actions";
 import { useI18n } from "@/components/i18n/i18n-provider";
 import { Spinner } from "@/components/ui/spinner";
 import { teamColor, type LobbyParticipant, type LobbySnapshot } from "@/lib/race/lobby";
@@ -62,8 +62,9 @@ function ParticipantRow({
 }) {
   const { m } = useI18n();
   const key = `assign:${participant.id}`;
-  const pending = runner.isPending(key);
-  const error = runner.errorFor(key);
+  const removeKey = `remove:${participant.id}`;
+  const pending = runner.isPending(key) || runner.isPending(removeKey);
+  const error = runner.errorFor(key) ?? runner.errorFor(removeKey);
   const color = teamColor(lobby.teams, participant.teamId);
   const selectId = `team-for-${participant.id}`;
 
@@ -102,6 +103,22 @@ function ParticipantRow({
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => {
+              if (window.confirm(m.lobby.removeConfirm(participant.displayName))) {
+                void runner.run(removeKey, () => removeParticipantAction(participant.id));
+              }
+            }}
+            aria-label={m.lobby.removeAria(participant.displayName)}
+            title={m.lobby.remove}
+            className="grid min-h-10 min-w-10 shrink-0 place-items-center rounded-xl text-ink-muted ring-1 ring-line transition hover:bg-danger-soft hover:text-danger hover:ring-danger/40 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <svg viewBox="0 0 20 20" aria-hidden="true" className="size-4">
+              <path d="M5 5l10 10M15 5L5 15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+          </button>
           {pending && <Spinner className="size-4 shrink-0 text-brand" />}
         </div>
       </div>

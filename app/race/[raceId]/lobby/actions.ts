@@ -58,6 +58,18 @@ export async function assignParticipantAction(participantId: unknown, teamId: un
   return callRpc("assign_participant", { p_participant_id: participantId, p_team_id: teamId });
 }
 
+/** Stage 11: remove a student; that user cannot rejoin this race. */
+export async function removeParticipantAction(participantId: unknown): Promise<LobbyActionResult> {
+  if (!isId(participantId)) return invalidRequest();
+  return callRpc("remove_participant", { p_participant_id: participantId });
+}
+
+/** Stage 11: close or open joining by code. */
+export async function setJoinLockedAction(raceId: unknown, locked: unknown): Promise<LobbyActionResult> {
+  if (!isId(raceId) || typeof locked !== "boolean") return invalidRequest();
+  return callRpc("set_join_locked", { p_race_id: raceId, p_locked: locked });
+}
+
 export async function startRaceAction(raceId: unknown): Promise<LobbyActionResult> {
   if (!isId(raceId)) return invalidRequest();
   return callRpc("start_race", { p_race_id: raceId });

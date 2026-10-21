@@ -103,9 +103,10 @@ describe("parseLobby", () => {
   };
 
   it("accepts the get_lobby() payload", () => {
-    // A payload without the Stage 7 clock reads as "no timer".
-    const noTimer = { timeLimitSeconds: null, endsAt: null, remainingSeconds: null };
+    // A payload without the Stage 7 clock reads as "no timer", without Stage 11 as "joining open".
+    const noTimer = { timeLimitSeconds: null, endsAt: null, remainingSeconds: null, joinLocked: false };
     expect(parseLobby(valid)).toEqual({ ...valid, race: { ...valid.race, ...noTimer } });
+    expect(parseLobby({ ...valid, race: { ...valid.race, joinLocked: true } }).race.joinLocked).toBe(true);
   });
 
   it("drops unexpected fields instead of passing them to the UI", () => {

@@ -42,11 +42,28 @@ describe("join_race", () => {
     expect(await t.rpc(student, "join_race", [typed, "Айбек"])).toBe(raceId);
   });
 
-  it("rejects unknown and malformed codes with the same error", async () => {
+  it("answers unknown and malformed codes the same way: no race (null), so the attempt is counted", async () => {
     const student = await t.createUser({ anonymous: true });
-    await expectDbError(t.rpc(student, "join_race", ["ZZZZZZ", "Айбек"]), "race_not_found");
-    await expectDbError(t.rpc(student, "join_race", ["", "Айбек"]), "race_not_found");
-    await expectDbError(t.rpc(student, "join_race", ["' or 1=1 --", "Айбек"]), "race_not_found");
+    expect(await t.rpc(student, "join_race", ["ZZZZZZ", "Айбек"])).toBeNull();
+    expect(await t.rpc(student, "join_race", ["", "Айбек"])).toBeNull();
+    expect(await t.rpc(student, "join_race", ["' or 1=1 --", "Айбек"])).toBeNull();
+  });
+
+  it("stops guessing after 20 unknown codes in 10 minutes, even for a real code", async () => {
+    const { raceId, code } = await newRace();
+    const guesser = await t.createUser({ anonymous: true });
+    for (let i = 0; i < 20; i++) expect(await t.rpc(guesser, "join_race", ["ZZZZZZ", "Айбек"])).toBeNull();
+    await expectDbError(t.rpc(guesser, "join_race", [code, "Айбек"]), "too_many_attempts");
+    // Another student is not affected
+    const other = await t.createUser({ anonymous: true });
+    expect(await t.rpc(other, "join_race", [code, "Бакыт"])).toBe(raceId);
+  });
+
+  it("strips invisible and direction-override characters from names", async () => {
+    const { raceId, code } = await newRace();
+    const student = await t.createUser({ anonymous: true });
+    await t.rpc(student, "join_race", [code, "Ай\u200bбек\u202e"]);
+    expect((await studentRows(raceId)).map((row) => row.display_name)).toEqual(["Айбек"]);
   });
 
   it("rejects finished races", async () => {

@@ -18,6 +18,8 @@ export type LobbyRace = {
   endsAt: string | null;
   /** Seconds left by the server's clock at the moment of the snapshot; null unless running with a limit. */
   remainingSeconds: number | null;
+  /** Stage 11: the teacher closed joining by code (false on an older database). */
+  joinLocked: boolean;
 };
 
 export type LobbyViewer = {
@@ -248,6 +250,7 @@ export function parseLobby(data: unknown): LobbySnapshot {
       timeLimitSeconds: isRank(race.timeLimitSeconds) ? race.timeLimitSeconds : null,
       endsAt: isString(race.endsAt) ? race.endsAt : null,
       remainingSeconds: isCount(race.remainingSeconds) ? race.remainingSeconds : null,
+      joinLocked: race.joinLocked === true,
     },
     viewer: {
       role: viewer.role,

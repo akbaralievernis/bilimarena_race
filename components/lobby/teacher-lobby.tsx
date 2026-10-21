@@ -5,6 +5,7 @@ import { RouteStrip } from "@/components/race/route-strip";
 import { ButtonLink } from "@/components/ui/button-link";
 import type { LobbySnapshot } from "@/lib/race/lobby";
 import { ConnectionBanner, ConnectionPill } from "./connection-status";
+import { JoinLockControl } from "./join-lock-control";
 import { ParticipantsPanel } from "./participants-panel";
 import { RaceStatusControl } from "./race-status-control";
 import { RoomCode } from "./room-code";
@@ -61,6 +62,7 @@ export function TeacherLobby({
         </div>
 
         <div className="mt-6 space-y-6 border-t border-line pt-6">
+          {race.status !== "finished" && <JoinLockControl race={race} runner={runner} />}
           {(race.status === "draft" || race.status === "lobby") && <TimeLimitControl race={race} runner={runner} />}
           <RaceStatusControl race={race} runner={runner} hint={m.lobby.teacherHints[race.status]} />
         </div>
