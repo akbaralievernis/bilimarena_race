@@ -308,8 +308,9 @@ export function formatDuration(seconds: number, m: Messages = ru): string {
 function cell(value: string | number | null): string {
   if (value === null) return "";
   const text = String(value);
-  // Spreadsheet formula injection: a cell must not start with = + - @.
-  const safe = /^[=+\-@]/.test(text) && typeof value === "string" ? `'${text}` : text;
+  // Spreadsheet formula injection: a cell must not start with = + - @, nor a tab or
+  // carriage return in front of one (OWASP CSV injection list).
+  const safe = /^[=+\-@\t\r]/.test(text) && typeof value === "string" ? `'${text}` : text;
   return /[";\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 

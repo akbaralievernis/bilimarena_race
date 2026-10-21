@@ -127,6 +127,12 @@ describe("CSV", () => {
     ]);
   });
 
+  it("defuses a formula hidden behind a tab or carriage return", () => {
+    const sneaky = { ...report, teams: report.teams.map((team, i) => (i === 0 ? { ...team, name: "\t=HYPERLINK(1)" } : team)) };
+    const first = lines(standingsCsv(sneaky))[1];
+    expect(first.startsWith("1;'\t=HYPERLINK(1);")).toBe(true);
+  });
+
   it("lists only answers, with negative points as numbers", () => {
     expect(lines(answersCsv(report, (iso) => iso.slice(11, 19)))).toEqual([
       "Время;Команда;Ученик;Чекпоинт;Название;Результат;Очки",
