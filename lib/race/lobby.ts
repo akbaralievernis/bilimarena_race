@@ -18,6 +18,8 @@ export type LobbyRace = {
   endsAt: string | null;
   /** Seconds left by the server's clock at the moment of the snapshot; null unless running with a limit. */
   remainingSeconds: number | null;
+  /** Stage 11: the teacher closed joining by code (false on an older database). */
+  joinLocked: boolean;
 };
 
 export type LobbyViewer = {
@@ -46,7 +48,8 @@ export type LobbyTeam = {
   stats: TeamStats | null;
 };
 
-export type LobbyParticipant = { id: string; displayName: string; teamId: string | null };
+/** focusLeaves: Stage 11, times the student left the race tab while it ran (0 on an older database). */
+export type LobbyParticipant = { id: string; displayName: string; teamId: string | null; focusLeaves: number };
 
 export type RoutePointType = "start" | "checkpoint" | "finish";
 
@@ -233,7 +236,12 @@ export function parseLobby(data: unknown): LobbySnapshot {
     ) {
       invalid();
     }
-    return { id: participant.id, displayName: participant.displayName, teamId: participant.teamId };
+    return {
+      id: participant.id,
+      displayName: participant.displayName,
+      teamId: participant.teamId,
+      focusLeaves: isCount(participant.focusLeaves) ? participant.focusLeaves : 0,
+    };
   });
 
   return {
@@ -248,6 +256,7 @@ export function parseLobby(data: unknown): LobbySnapshot {
       timeLimitSeconds: isRank(race.timeLimitSeconds) ? race.timeLimitSeconds : null,
       endsAt: isString(race.endsAt) ? race.endsAt : null,
       remainingSeconds: isCount(race.remainingSeconds) ? race.remainingSeconds : null,
+      joinLocked: race.joinLocked === true,
     },
     viewer: {
       role: viewer.role,

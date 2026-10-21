@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 
 type JoinField = "code" | "name";
 
-const CODE_ERRORS = new Set(["race_not_found", "race_finished", "race_not_open", "race_full"]);
+const CODE_ERRORS = new Set(["race_not_found", "race_finished", "race_not_open", "race_full", "join_closed", "too_many_attempts"]);
 const NAME_ERRORS = new Set(["display_name_taken", "invalid_display_name"]);
 
 /**
@@ -44,6 +44,8 @@ export async function joinRaceAction(formData: FormData): Promise<ActionResult<J
     p_code: code.value,
     p_display_name: name.value,
   });
+  // Unknown code: join_race answers null (so the attempt is counted) instead of an error.
+  if (!error && raceId === null) return { ok: false, fieldErrors: { code: m.errors.race.race_not_found } };
   if (error || typeof raceId !== "string") {
     const errorCode = raceErrorCode(error);
     const message = raceErrorMessage(error, {}, m);

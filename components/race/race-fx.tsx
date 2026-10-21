@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useI18n } from "@/components/i18n/i18n-provider";
 import type { Messages } from "@/lib/i18n/config";
-import { diffRace, type RaceEvent } from "@/lib/race/events";
-import { teamColor, type LobbySnapshot, type LobbyTeam } from "@/lib/race/lobby";
+import { diffFocus, diffRace, type RaceEvent } from "@/lib/race/events";
+import { teamColor, type LobbyParticipant, type LobbySnapshot, type LobbyTeam } from "@/lib/race/lobby";
 
 /*
  * The race's live moments: a feed of what just happened, a toast for the
@@ -15,20 +15,23 @@ import { teamColor, type LobbySnapshot, type LobbyTeam } from "@/lib/race/lobby"
 
 export type FeedItem = { id: number; event: RaceEvent };
 
-type Seen = { teams: LobbyTeam[]; status: string; feed: FeedItem[]; seq: number; go: number; end: number };
+type Seen = { teams: LobbyTeam[]; participants: LobbyParticipant[]; status: string; feed: FeedItem[]; seq: number; go: number; end: number };
 
 /** Compares each new snapshot with the previous one and keeps the newest events first. */
 export function useRaceEvents(lobby: LobbySnapshot) {
-  const [seen, setSeen] = useState<Seen>({ teams: lobby.teams, status: lobby.race.status, feed: [], seq: 0, go: 0, end: 0 });
+  const [seen, setSeen] = useState<Seen>({ teams: lobby.teams, participants: lobby.participants, status: lobby.race.status, feed: [], seq: 0, go: 0, end: 0 });
   let current = seen;
-  if (seen.teams !== lobby.teams || seen.status !== lobby.race.status) {
+  if (seen.teams !== lobby.teams || seen.participants !== lobby.participants || seen.status !== lobby.race.status) {
     let seq = seen.seq;
-    const items = diffRace(seen.teams, lobby.teams, lobby.route).map((event) => ({ id: ++seq, event }));
+    const items = [...diffRace(seen.teams, lobby.teams, lobby.route), ...diffFocus(seen.participants, lobby.participants)].map(
+      (event) => ({ id: ++seq, event }),
+    );
     const started = seen.status !== "running" && lobby.race.status === "running";
     const ended = seen.status === "running" && lobby.race.status === "finished";
     if (started || ended) seq += 1;
     current = {
       teams: lobby.teams,
+      participants: lobby.participants,
       status: lobby.race.status,
       feed: [...items.reverse(), ...seen.feed].slice(0, 12),
       seq,
@@ -51,6 +54,8 @@ export function eventText(event: RaceEvent, m: Messages): string {
       return m.live.overtook(event.team, event.other);
     case "lead":
       return m.live.newLeader(event.team);
+    case "focus":
+      return m.focus.leftTab(event.team, event.count, 3);
   }
 }
 
@@ -64,11 +69,25 @@ export function personalText(event: RaceEvent, ownTeamId: string | null, m: Mess
   return null;
 }
 
-const ICONS: Record<RaceEvent["kind"], string> = { advance: "➜", finish: "🏁", overtake: "⚡", lead: "👑" };
+const ICONS: Record<RaceEvent["kind"], string> = { advance: "➜", finish: "🏁", overtake: "⚡", lead: "👑", focus: "👀" };
 
 /** Feed of the latest events for the projector and the teacher. */
-export function LiveFeed({ feed, teams, dark = false, limit = 6 }: { feed: FeedItem[]; teams: LobbyTeam[]; dark?: boolean; limit?: number }) {
+export function LiveFeed({
+  feed,
+  teams,
+  dark = false,
+  limit = 6,
+  showFocus = true,
+}: {
+  feed: FeedItem[];
+  teams: LobbyTeam[];
+  dark?: boolean;
+  limit?: number;
+  /** "Left the tab" is for the teacher, not for the class on the projector. */
+  showFocus?: boolean;
+}) {
   const { m } = useI18n();
+  feed = showFocus ? feed : feed.filter((item) => item.event.kind !== "focus");
   return (
     <section aria-label={m.live.title}>
       <p className={`flex items-center gap-2 text-xs font-extrabold tracking-[0.18em] uppercase ${dark ? "text-white/80" : "text-brand-strong"}`}>

@@ -206,7 +206,7 @@ export function ProjectorScreen({ initial }: { initial: LobbySnapshot }) {
                   </div>
                 </section>
                 <div className="rounded-card bg-white/[0.06] p-6 ring-1 ring-white/15 backdrop-blur-md lg:[zoom:1.15]">
-                  <LiveFeed feed={feed} teams={teams} dark limit={5} />
+                  <LiveFeed feed={feed} teams={teams} dark limit={5} showFocus={false} />
                 </div>
               </div>
             </div>

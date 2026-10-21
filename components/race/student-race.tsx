@@ -19,6 +19,7 @@ import { Leaderboard } from "./leaderboard";
 import { RaceClock } from "./race-clock";
 import { AnimatedScore, Confetti, GoOverlay, LiveToast, useRaceEvents } from "./race-fx";
 import { RaceTrack } from "./race-track";
+import { FOCUS_LIMIT, useFocusGuard } from "./use-focus-guard";
 import { TaskCard } from "./task-card";
 import { useRaceClock } from "./use-race-clock";
 
@@ -72,6 +73,7 @@ export function StudentRace({
   const passed = team ? Math.min(team.position, total) : 0;
   const nextHasTask = Boolean(progress?.next?.hasTask);
   const taskPoint = currentTask ? route[currentTask.checkpointPosition] : null;
+  const focus = useFocusGuard(race.id, race.status === "running" && Boolean(team) && !progress?.finished);
 
   async function answer(value: string) {
     if (!team || !currentTask || answering.current) return;
@@ -116,6 +118,16 @@ export function StudentRace({
     if (!ok) void refresh();
   }
 
+  if (focus.removed) {
+    return (
+      <section role="alert" className="mx-auto max-w-lg rounded-card bg-surface p-8 text-center shadow-card ring-1 ring-line">
+        <p className="text-5xl" aria-hidden="true">🚫</p>
+        <h1 className="mt-4 font-display text-2xl font-bold tracking-tight">{m.focus.removedTitle}</h1>
+        <p className="mt-2 text-ink-muted">{m.focus.removedText}</p>
+      </section>
+    );
+  }
+
   const gap = team ? gaps(teams, team.id) : null;
   const left = team ? Math.max(0, route.length - 1 - team.position) : 0;
   const running = race.status !== "lobby" && race.status !== "draft";
@@ -126,6 +138,24 @@ export function StudentRace({
       <Confetti burst={burst + events.end} />
       <LiveToast feed={events.feed} ownTeamId={team?.id ?? null} />
       <ConnectionBanner state={connection} />
+      {focus.warn && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-ink/60 p-4" role="presentation">
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="focus-title"
+            aria-describedby="focus-text"
+            className="animate-pop-in w-full max-w-md rounded-card bg-surface p-6 text-center shadow-lift"
+          >
+            <p className="text-4xl" aria-hidden="true">⚠️</p>
+            <h2 id="focus-title" className="mt-3 font-display text-xl font-bold">{m.focus.warnTitle}</h2>
+            <p id="focus-text" className="mt-2 text-ink-muted">{m.focus.warnText(Math.max(1, focus.leaves), FOCUS_LIMIT)}</p>
+            <Button className="mt-5 w-full" onClick={focus.dismiss} autoFocus>
+              {m.focus.ok}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         <section className="rounded-card bg-surface p-6 shadow-card ring-1 ring-line sm:p-8">
