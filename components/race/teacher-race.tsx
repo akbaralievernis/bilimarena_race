@@ -122,7 +122,7 @@ export function TeacherRace({
             <ul className="mt-4 space-y-3">
               {standings(teams).map((team) => {
                 const progress = teamProgress(route, team.position);
-                const color = teamColor(teams, team.id) ?? "#635BFF";
+                const color = teamColor(teams, team.id) ?? "#E0162B";
                 return (
                   <li key={team.id} className="rounded-2xl p-4 ring-1 ring-line">
                     <div className="flex min-w-0 items-center gap-3">

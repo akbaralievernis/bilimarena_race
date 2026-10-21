@@ -51,6 +51,19 @@ export function draftFromRow(row: ImportedRow, id: string, fallbackTitle: string
   return { id, title, task: { ...base.task, type: "single_choice", question: row.question, options, correctOptionId: correct.id } };
 }
 
+/**
+ * A new variant of the same race for another class: checkpoints in a different order and,
+ * in choice tasks, the options in a different order (the correct one stays marked).
+ * Titles move with their tasks; an untouched route is left as it is.
+ */
+export function shuffleRoute(items: RouteDraftItem[], random: () => number = Math.random): RouteDraftItem[] {
+  return shuffled(items, random).map((item) =>
+    item.task.type === "single_choice"
+      ? { ...item, task: { ...item.task, options: shuffled(item.task.options, random) } }
+      : item,
+  );
+}
+
 const isBlank = ({ title, task }: RouteDraftItem) =>
   title.trim() === "" &&
   task.question.trim() === "" &&
@@ -385,6 +398,7 @@ export function RouteEditor({
 }) {
   const { m } = useI18n();
   const [nextId, setNextId] = useState(items.length);
+  const [shuffleNote, setShuffleNote] = useState(false);
   const counter = useRef(0);
   const focusId = useRef<string | null>(null);
   const { min, max } = LIMITS.route;
@@ -522,17 +536,38 @@ export function RouteEditor({
 
       {error && <p className="mt-2 text-sm font-semibold text-danger">{error}</p>}
 
+      <div className="mt-3 flex flex-wrap gap-2">
       <button
         type="button"
         onClick={add}
         disabled={items.length >= max}
-        className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl px-3.5 text-sm font-bold text-brand-strong ring-1 ring-brand/30 transition hover:bg-brand-soft disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3.5 text-sm font-bold text-brand-strong ring-1 ring-brand/30 transition hover:bg-brand-soft disabled:cursor-not-allowed disabled:opacity-50"
       >
         <svg viewBox="0 0 20 20" aria-hidden="true" className="size-4">
           <path d="M10 4v12M4 10h12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
         {items.length >= max ? m.route.max(max) : m.route.add}
       </button>
+      <button
+        type="button"
+        onClick={() => {
+          onChange(shuffleRoute(items));
+          setShuffleNote(true);
+        }}
+        disabled={items.length < 2 || items.every(isBlank)}
+        className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3.5 text-sm font-bold text-teal-strong ring-1 ring-teal/40 transition hover:bg-teal-soft disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <svg viewBox="0 0 20 20" aria-hidden="true" className="size-4">
+          <path d="M3 6h3.5c4 0 4.5 8 8.5 8H17m0 0-2.5-2.5M17 14l-2.5 2.5M3 14h3.5c1.4 0 2.3-1 3-2.2M17 6h-2c-1.4 0-2.3 1-3 2.2M17 6l-2.5-2.5M17 6l-2.5 2.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        {m.route.shuffle}
+      </button>
+      </div>
+      {shuffleNote && (
+        <p role="status" className="mt-2 text-sm font-semibold text-teal-strong">
+          {m.route.shuffled}
+        </p>
+      )}
     </fieldset>
   );
 }

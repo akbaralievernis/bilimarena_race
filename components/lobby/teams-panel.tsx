@@ -95,7 +95,7 @@ function TeamCard({
   const [draft, setDraft] = useState(team.name);
   const [localError, setLocalError] = useState<string | null>(null);
   const members = lobby.participants.filter((participant) => participant.teamId === team.id);
-  const color = teamColor(lobby.teams, team.id) ?? "#635BFF";
+  const color = teamColor(lobby.teams, team.id) ?? "#E0162B";
   const renameKey = `rename:${team.id}`;
   const deleteKey = `delete:${team.id}`;
   const error = localError ?? runner.errorFor(renameKey) ?? runner.errorFor(deleteKey);

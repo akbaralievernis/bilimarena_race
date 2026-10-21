@@ -1,9 +1,8 @@
 @import "tailwindcss";
 
 /*
- * Bilim Arena Race design tokens.
- * Light educational palette: calm surfaces, purple/turquoise accents,
- * bright colours reserved for game moments (tokens, checkpoints, finish).
+ * Bilim Arena Race design tokens — the same palette as the main Bilim Arena site:
+ * calm light surfaces, the brand red with turquoise, bright colours for game moments.
  */
 @theme {
   --color-canvas: #f7f8fc;
@@ -13,15 +12,15 @@
   --color-ink: #202b46;
   --color-ink-muted: #5a6480;
 
-  --color-brand: #635bff;
-  --color-brand-strong: #4c44db; /* hover, and text on brand-soft */
-  --color-brand-soft: #eeedff;
+  --color-brand: #e0162b; /* white text on it: 4.9:1 */
+  --color-brand-strong: #b50e20; /* hover, and text on brand-soft (6.7:1 on white) */
+  --color-brand-soft: #fdecee;
 
-  --color-teal: #21b8a6; /* decorative only: too light for text on white */
+  --color-teal: #0fa595; /* decorative only: too light for text on white */
   --color-teal-strong: #0e7a6d; /* teal text */
   --color-teal-soft: #e3f7f4;
 
-  --color-sun: #ffb020;
+  --color-sun: #ffb547;
   --color-sun-soft: #fff4dc;
   --color-coral: #ff6b6b;
 
@@ -30,7 +29,7 @@
 
   --shadow-card: 0 1px 2px rgb(32 43 70 / 0.05), 0 10px 30px -12px rgb(32 43 70 / 0.12);
   --shadow-lift: 0 2px 4px rgb(32 43 70 / 0.06), 0 18px 40px -16px rgb(32 43 70 / 0.22);
-  --shadow-brand: 0 10px 24px -10px rgb(99 91 255 / 0.65);
+  --shadow-brand: 0 12px 28px -10px rgb(224 22 43 / 0.65);
 
   --radius-card: 1.5rem;
 }
@@ -42,6 +41,21 @@
 
 :root {
   color-scheme: light;
+}
+
+/* Night stage, as on the main site's hero: dark violet gradient with soft colour blobs */
+.stage-night {
+  background:
+    radial-gradient(560px 360px at 8% 0%, rgb(224 22 43 / 0.55), transparent 70%),
+    radial-gradient(520px 380px at 100% 20%, rgb(106 43 217 / 0.45), transparent 70%),
+    radial-gradient(520px 320px at 45% 110%, rgb(15 165 149 / 0.4), transparent 70%),
+    linear-gradient(135deg, #0b1026 0%, #1b1446 55%, #3a0d2e 100%);
+}
+.text-grad {
+  background: linear-gradient(120deg, #ff3d57 0%, #ff7a59 60%, #ffb547 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 body {

@@ -31,7 +31,7 @@ const TEAMS: {
   lap: CSSProperties;
 }[] = [
   { color: "#21B8A6", points: 240, at: STOPS.bonus, lap: { animationDuration: "11s", animationDelay: "-7.7s" } },
-  { color: "#635BFF", points: 215, at: STOPS.code, lap: { animationDuration: "13s", animationDelay: "-4.2s" } },
+  { color: "#E0162B", points: 215, at: STOPS.code, lap: { animationDuration: "13s", animationDelay: "-4.2s" } },
   { color: "#FFB020", points: 190, at: STOPS.start, lap: { animationDuration: "15s", animationDelay: "0s" } },
 ];
 
@@ -105,7 +105,7 @@ export function RaceMapPreview({ m }: { m: Messages }) {
         <rect width="400" height="340" fill="#F7F8FC" />
         <rect width="400" height="340" fill="url(#race-map-dots)" />
         <circle cx="120" cy="96" r="78" fill="#E3F7F4" />
-        <circle cx="352" cy="300" r="92" fill="#EEEDFF" />
+        <circle cx="352" cy="300" r="92" fill="#FDECEE" />
 
         {/* Road: border, surface, dotted centre line */}
         <path d={ROUTE} fill="none" stroke="#E4E7F0" strokeWidth="30" strokeLinecap="round" />
@@ -113,7 +113,7 @@ export function RaceMapPreview({ m }: { m: Messages }) {
         <path
           d={ROUTE}
           fill="none"
-          stroke="#635BFF"
+          stroke="#E0162B"
           strokeOpacity="0.35"
           strokeWidth="3"
           strokeLinecap="round"
@@ -128,8 +128,8 @@ export function RaceMapPreview({ m }: { m: Messages }) {
           </text>
         </g>
 
-        <Checkpoint at={STOPS.quiz} ring="#635BFF">
-          <Glyph color="#635BFF" size={17}>?</Glyph>
+        <Checkpoint at={STOPS.quiz} ring="#E0162B">
+          <Glyph color="#E0162B" size={17}>?</Glyph>
         </Checkpoint>
         <Checkpoint at={STOPS.code} ring="#21B8A6">
           <Glyph color="#0E7A6D" size={11}>{"</>"}</Glyph>

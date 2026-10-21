@@ -224,6 +224,8 @@ export const ky: Messages = {
     checkpointTitle: (n: number) => `${n}-чекпоинттин аталышы`,
     add: "Чекпоинт кошуу",
     max: (n: number) => `Эң көп ${n} чекпоинт`,
+    shuffle: "Аралаштыруу: башка класс үчүн вариант",
+    shuffled: "Чекпоинттердин тартиби жана жооп варианттары аралаштырылды — бул жарыштын жаңы варианты.",
     taskTypes: { single_choice: "Жоопту тандоо", short_answer: "Кыска жооп" },
     import: {
       open: "Excel'ден коюу",

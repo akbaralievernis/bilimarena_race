@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { draftFromRow, serializeRoute } from "@/app/create/route-editor";
+import { draftFromRow, serializeRoute, shuffleRoute } from "@/app/create/route-editor";
 import { exampleTable } from "@/lib/i18n/messages/ru";
 import { parseQuestions, parseTable, shuffled } from "@/lib/race/import";
 import { parseRouteDraft } from "@/lib/race/tasks";
@@ -88,5 +88,38 @@ describe("rows become route items", () => {
     for (const value of [0, 0.3, 0.7, 0.99]) {
       expect([...shuffled(items, () => value)].sort()).toEqual(items);
     }
+  });
+});
+
+describe("shuffleRoute: a variant for another class", () => {
+  const rows = [
+    { title: "A", question: "1 + 1?", answer: "2", wrong: ["3", "4"] },
+    { title: "B", question: "Столица?", answer: "Бишкек", wrong: [] },
+    { title: "C", question: "2 × 3?", answer: "6", wrong: ["5", "8", "9"] },
+  ];
+  const items = rows.map((row, index) => draftFromRow(row, `checkpoint-${index}`, `CP ${index + 1}`, () => 0.3));
+  // Детерминированный «случай»: разный порядок, но воспроизводимый
+  let seed = 7;
+  const random = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+  const variant = shuffleRoute(items, random);
+
+  it("keeps every checkpoint with its own task and the right answer marked", () => {
+    expect(variant.map((item) => item.title).sort()).toEqual(["A", "B", "C"]);
+    for (const item of variant) {
+      const original = items.find((other) => other.title === item.title)!;
+      expect(item.task.question).toBe(original.task.question);
+      if (item.task.type === "single_choice") {
+        const right = item.task.options.find((option) => option.id === item.task.correctOptionId);
+        const originalRight = original.task.options.find((option) => option.id === original.task.correctOptionId);
+        expect(right?.text).toBe(originalRight?.text);
+        expect(item.task.options.map((option) => option.text).sort()).toEqual(original.task.options.map((option) => option.text).sort());
+      } else {
+        expect(item.task.correctAnswer).toBe(original.task.correctAnswer);
+      }
+    }
+  });
+
+  it("still serializes into a valid route", () => {
+    expect(parseRouteDraft(serializeRoute(variant)).ok).toBe(true);
   });
 });

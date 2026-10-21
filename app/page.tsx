@@ -9,18 +9,20 @@ export default async function HomePage() {
   const { m } = await getI18n();
   return (
     <main className="flex-1">
-      <section className="mx-auto grid w-full max-w-6xl items-center gap-10 px-4 pt-6 pb-16 sm:px-6 sm:pt-10 lg:grid-cols-[1.05fr_1fr] lg:gap-14 lg:px-8 lg:pt-14 lg:pb-24">
+      {/* Night stage, as on the main Bilim Arena site */}
+      <div className="px-2 sm:px-4">
+      <section className="stage-night mx-auto grid w-full max-w-6xl items-center gap-10 overflow-hidden rounded-[2rem] px-5 pt-10 pb-12 text-white shadow-lift sm:px-10 sm:pt-12 lg:grid-cols-[1.05fr_1fr] lg:gap-14 lg:px-12 lg:pt-16 lg:pb-16">
         <div>
-          <p className="inline-flex items-center gap-2 rounded-full bg-teal-soft px-3.5 py-1.5 text-sm font-bold text-teal-strong">
-            <span className="size-2 rounded-full bg-teal" aria-hidden="true" />
+          <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-sm font-bold text-white ring-1 ring-white/20">
+            <span className="size-2 rounded-full bg-sun" aria-hidden="true" />
             {m.home.eyebrow}
           </p>
 
           <h1 className="mt-5 font-display text-4xl leading-[1.05] font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            Bilim Arena <span className="text-brand">Race</span>
+            Bilim Arena <span className="text-grad">Race</span>
           </h1>
           <p className="mt-4 text-xl font-bold sm:text-2xl">{m.home.title}</p>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-muted sm:text-lg">{m.home.lead}</p>
+          <p className="mt-4 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg">{m.home.lead}</p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <ButtonLink href="/create" className="w-full sm:w-auto">
@@ -50,15 +52,16 @@ export default async function HomePage() {
               </svg>
             </ButtonLink>
           </div>
-          <p className="mt-4 text-sm text-ink-muted">{m.home.caption}</p>
+          <p className="mt-4 text-sm text-white/65">{m.home.caption}</p>
         </div>
 
         <RaceMapPreview m={m} />
       </section>
+      </div>
 
       <section
         aria-labelledby="how-it-works"
-        className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6 lg:px-8 lg:pb-24"
+        className="mx-auto w-full max-w-6xl px-4 pt-14 pb-16 sm:px-6 lg:px-8 lg:pt-20 lg:pb-24"
       >
         <h2 id="how-it-works" className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
           {m.home.howTitle}
