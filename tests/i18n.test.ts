@@ -54,6 +54,7 @@ describe("dictionaries", () => {
       "common.dash",
       "common.start",
       "common.finish",
+      "live.go",
       "common.startLetter",
       "common.finishLetter",
       "language.short.ky",

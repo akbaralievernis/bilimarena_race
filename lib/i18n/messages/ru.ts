@@ -406,6 +406,27 @@ export const ru = {
     accuracy: (n: number) => `точность ${n}%`,
   },
 
+  live: {
+    title: "Прямой эфир",
+    empty: "Здесь появятся события гонки: кто прошёл чекпоинт, кто кого обогнал.",
+    advanced: (team: string, n: number) => `«${team}» прошла чекпоинт ${n}`,
+    finished: (team: string, order: number | null) =>
+      order ? `«${team}» финишировала ${order}-й!` : `«${team}» финишировала!`,
+    overtook: (team: string, other: string) => `«${team}» обогнала «${other}»`,
+    newLeader: (team: string) => `«${team}» — новый лидер!`,
+    overtookYou: (team: string) => `«${team}» обогнала вашу команду — догоняйте!`,
+    youOvertook: (other: string) => `Вы обогнали «${other}»!`,
+    youLead: "Ваша команда — лидер гонки!",
+    go: "Старт!",
+    toAbove: (n: number) => `До следующего места: ${n} ${points(n)}`,
+    lead: (n: number) => `Отрыв от следующей команды: ${n} ${points(n)}`,
+    leftToFinish: (n: number) => `До финиша: ${n} ${plural(n, ["чекпоинт", "чекпоинта", "чекпоинтов"])}`,
+    routeDetails: "Маршрут и задания",
+    podium: "Пьедестал",
+    trackAria: "Трасса гонки: команды на точках маршрута",
+    teamAt: (team: string, label: string) => `${team}: ${label}`,
+  },
+
   scoring: {
     pointsWord: points,
     rules: (s: { correct: number; speedBonusMax: number; wrong: string; pauseSeconds: number; bonus: readonly number[] }) =>

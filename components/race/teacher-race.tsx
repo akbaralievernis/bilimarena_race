@@ -15,6 +15,8 @@ import { accuracy, rulesSummary, standings } from "@/lib/race/scoring";
 import { DuplicateRaceButton } from "./duplicate-race-button";
 import { Leaderboard } from "./leaderboard";
 import { RaceClock } from "./race-clock";
+import { Confetti, GoOverlay, LiveFeed, useRaceEvents } from "./race-fx";
+import { RaceTrack } from "./race-track";
 import { RouteMap } from "./route-map";
 import { useRaceClock } from "./use-race-clock";
 
@@ -41,9 +43,12 @@ export function TeacherRace({
   const { race, route, teams } = lobby;
   const secondsLeft = useRaceClock(race, refresh);
   const total = checkpointCount(route);
+  const events = useRaceEvents(lobby);
 
   return (
     <div className="space-y-6">
+      <GoOverlay go={events.go} />
+      <Confetti burst={events.end} />
       <ConnectionBanner state={connection} />
 
       <section className="rounded-card bg-surface p-5 shadow-card ring-1 ring-line sm:p-8">
@@ -105,8 +110,19 @@ export function TeacherRace({
           </h2>
           <p className="mt-1 text-sm text-ink-muted">{m.race.checkpointsCount(checkpointCount(route))}</p>
           <div className="mt-5">
-            <RouteMap route={route} teams={teams} />
+            <RaceTrack route={route} teams={teams} perRow={4} />
           </div>
+          <div className="mt-5 rounded-2xl bg-canvas p-4 ring-1 ring-line">
+            <LiveFeed feed={events.feed} teams={teams} limit={4} />
+          </div>
+          <details className="group mt-5">
+            <summary className="cursor-pointer list-none rounded-xl px-1 py-1 font-bold text-brand-strong">
+              <span className="inline-block transition group-open:rotate-90" aria-hidden="true">›</span> {m.live.routeDetails}
+            </summary>
+            <div className="mt-4">
+              <RouteMap route={route} teams={teams} />
+            </div>
+          </details>
         </section>
 
         <section aria-labelledby="teams-progress" className="rounded-card bg-surface p-5 shadow-card ring-1 ring-line sm:p-6">
