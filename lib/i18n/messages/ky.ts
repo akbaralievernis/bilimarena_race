@@ -393,6 +393,27 @@ export const ky: Messages = {
     accuracy: (n: number) => `тактык ${n}%`,
   },
 
+  live: {
+    title: "Түз эфир",
+    empty: "Бул жерде жарыштын окуялары чыгат: ким чекпоинттен өттү, ким кимди озуп кетти.",
+    advanced: (team: string, n: number) => `«${team}» ${n}-чекпоинттен өттү`,
+    finished: (team: string, order: number | null) =>
+      order ? `«${team}» финишке ${order}-болуп жетти!` : `«${team}» финишке жетти!`,
+    overtook: (team: string, other: string) => `«${team}» «${other}» командасын озуп кетти`,
+    newLeader: (team: string) => `«${team}» — жаңы лидер!`,
+    overtookYou: (team: string) => `«${team}» сиздин команданы озуп кетти — кууп жетиңиз!`,
+    youOvertook: (other: string) => `Сиз «${other}» командасын озуп кеттиңиз!`,
+    youLead: "Сиздин команда — жарыштын лидери!",
+    go: "Старт!",
+    toAbove: (n: number) => `Кийинки орунга чейин: ${n} упай`,
+    lead: (n: number) => `Кийинки командадан алдыда: ${n} упай`,
+    leftToFinish: (n: number) => `Финишке чейин: ${n} чекпоинт`,
+    routeDetails: "Маршрут жана тапшырмалар",
+    podium: "Сыйлык тепкичи",
+    trackAria: "Жарыштын трассасы: командалар маршруттун чекиттеринде",
+    teamAt: (team: string, label: string) => `${team}: ${label}`,
+  },
+
   scoring: {
     pointsWord: () => "упай",
     rules: (s: { correct: number; speedBonusMax: number; wrong: string; pauseSeconds: number; bonus: readonly number[] }) =>

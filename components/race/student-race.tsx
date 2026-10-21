@@ -12,11 +12,13 @@ import { Button } from "@/components/ui/button";
 import type { Messages } from "@/lib/i18n/config";
 import { clientErrorMessage } from "@/lib/race/errors";
 import { teamColor, type LobbySnapshot, type RoutePoint } from "@/lib/race/lobby";
+import { gaps } from "@/lib/race/events";
 import { checkpointCount, pointLabel, teamProgress } from "@/lib/race/route";
 import { SCORING, formatPoints, rulesSummary } from "@/lib/race/scoring";
 import { Leaderboard } from "./leaderboard";
 import { RaceClock } from "./race-clock";
-import { RouteMap } from "./route-map";
+import { AnimatedScore, Confetti, GoOverlay, LiveToast, useRaceEvents } from "./race-fx";
+import { RaceTrack } from "./race-track";
 import { TaskCard } from "./task-card";
 import { useRaceClock } from "./use-race-clock";
 
@@ -57,6 +59,9 @@ export function StudentRace({
   const answering = useRef(false);
   const [answerPending, setAnswerPending] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [burst, setBurst] = useState(0);
+  const [tries, setTries] = useState(0);
+  const events = useRaceEvents(lobby);
 
   const { race, route, teams, viewer, currentTask } = lobby;
   const secondsLeft = useRaceClock(race, refresh);
@@ -74,6 +79,7 @@ export function StudentRace({
     answering.current = true;
     setAnswerPending(true);
     setFeedback(null);
+    setTries((n) => n + 1);
     try {
       const result = await submitAnswerAction(team.id, currentTask.id, value);
       if (!result.ok) setFeedback({ tone: "error", text: result.message });
@@ -81,6 +87,7 @@ export function StudentRace({
         setFeedback({ tone: "info", text: m.race.alreadyPassed });
       } else if (result.correct) {
         const earned = m.race.earned(formatPoints(result.points), result.points);
+        setBurst((n) => n + 1);
         setFeedback({
           tone: "success",
           text: result.finished
@@ -109,8 +116,15 @@ export function StudentRace({
     if (!ok) void refresh();
   }
 
+  const gap = team ? gaps(teams, team.id) : null;
+  const left = team ? Math.max(0, route.length - 1 - team.position) : 0;
+  const running = race.status !== "lobby" && race.status !== "draft";
+
   return (
     <div className="space-y-4">
+      <GoOverlay go={events.go} />
+      <Confetti burst={burst + events.end} />
+      <LiveToast feed={events.feed} ownTeamId={team?.id ?? null} />
       <ConnectionBanner state={connection} />
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
@@ -130,36 +144,69 @@ export function StudentRace({
             </div>
           ) : (
             <>
-              <div className="mt-6 rounded-2xl px-5 py-4" style={{ boxShadow: `inset 0 0 0 2px ${color ?? "#E4E7F0"}` }}>
-                <p className="text-sm font-semibold text-ink-muted">{m.race.yourTeam}</p>
-                <p className="mt-1 flex items-center gap-2.5 font-display text-xl font-bold break-words">
-                  <span className="size-3.5 shrink-0 rounded-full" style={{ backgroundColor: color ?? undefined }} aria-hidden="true" />
+              <div className="stage-night relative mt-6 overflow-hidden rounded-2xl px-5 py-5 text-white shadow-lift">
+                <span
+                  aria-hidden="true"
+                  className="absolute -top-16 -right-10 size-44 rounded-full opacity-40 blur-2xl"
+                  style={{ backgroundColor: color ?? "#E0162B" }}
+                />
+                <p className="relative text-sm font-semibold text-white/70">{m.race.yourTeam}</p>
+                <p className="relative mt-1 flex items-center gap-2.5 font-display text-xl font-bold break-words">
+                  <span className="size-3.5 shrink-0 rounded-full ring-2 ring-white" style={{ backgroundColor: color ?? undefined }} aria-hidden="true" />
                   {team.name}
                 </p>
-                {total > 0 && (
-                  <p className="mt-1 text-sm text-ink-muted">
-                    {m.race.passed(passed, total)}
-                  </p>
-                )}
-                {race.status !== "lobby" && race.status !== "draft" && (
-                  <dl className="mt-3 grid grid-cols-2 gap-3">
-                    <div className="rounded-xl bg-canvas px-3 py-2 ring-1 ring-line">
-                      <dt className="text-xs font-bold text-ink-muted">{m.race.teamPoints}</dt>
-                      <dd className="font-display text-xl font-bold tabular-nums">{team.score}</dd>
+                {running && (
+                  <dl className="relative mt-4 grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/15">
+                      <dt className="text-xs font-bold text-white/70">{m.race.teamPoints}</dt>
+                      <dd className="font-display text-2xl font-bold">
+                        <AnimatedScore value={team.score} />
+                      </dd>
                     </div>
-                    <div className="rounded-xl bg-canvas px-3 py-2 ring-1 ring-line">
-                      <dt className="text-xs font-bold text-ink-muted">{m.race.place}</dt>
-                      <dd className="font-display text-xl font-bold tabular-nums">
+                    <div className="rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/15">
+                      <dt className="text-xs font-bold text-white/70">{m.race.place}</dt>
+                      <dd key={team.place ?? 0} className="animate-pop-in font-display text-2xl font-bold tabular-nums">
+                        {team.place === 1 && <span aria-hidden="true">👑 </span>}
                         {team.place ?? "—"}
-                        <span className="text-sm font-semibold text-ink-muted">{m.race.of(teams.length)}</span>
+                        <span className="text-sm font-semibold text-white/70">{m.race.of(teams.length)}</span>
                       </dd>
                     </div>
                   </dl>
                 )}
+                {total > 0 && (
+                  <div className="relative mt-4">
+                    <div className="flex items-center justify-between gap-3 text-xs font-bold text-white/75">
+                      <span>{m.race.passed(passed, total)}</span>
+                      {!progress.finished && <span>{m.live.leftToFinish(left)}</span>}
+                    </div>
+                    <div
+                      className="mt-2 h-3 overflow-hidden rounded-full bg-white/15"
+                      role="progressbar"
+                      aria-label={m.race.progressAria(team.name)}
+                      aria-valuemin={0}
+                      aria-valuemax={route.length - 1}
+                      aria-valuenow={team.position}
+                    >
+                      <div
+                        className="h-full rounded-full transition-[width] duration-700 ease-out"
+                        style={{ width: `${progress.ratio * 100}%`, background: `linear-gradient(90deg, ${color ?? "#E0162B"}, #FFB547)` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {running && gap && teams.length > 1 && (
+                  <p className="relative mt-3 text-sm font-semibold text-white/85">
+                    {gap.toAbove === null
+                      ? gap.overBelow !== null
+                        ? m.live.lead(gap.overBelow)
+                        : null
+                      : m.live.toAbove(gap.toAbove)}
+                  </p>
+                )}
               </div>
 
               {feedback && (
-                <Alert tone={feedback.tone} className="animate-pop-in mt-4">
+                <Alert key={tries} tone={feedback.tone} className={`mt-4 ${feedback.tone === "error" ? "animate-shake" : "animate-pop-in"}`}>
                   {feedback.text}
                 </Alert>
               )}
@@ -230,7 +277,7 @@ export function StudentRace({
             {m.race.map}
           </h2>
           <div className="mt-5">
-            <RouteMap route={route} teams={teams} ownTeamId={team?.id ?? null} />
+            <RaceTrack route={route} teams={teams} ownTeamId={team?.id ?? null} perRow={4} />
           </div>
           <h2 className="mt-6 font-display text-lg font-bold tracking-tight">
             {race.status === "finished" ? m.race.results : m.race.standings}

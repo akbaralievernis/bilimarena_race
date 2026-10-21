@@ -127,6 +127,140 @@ body {
   animation: waiting-dot 1.4s ease-in-out infinite;
 }
 
+
+/*
+ * Live race: tokens hop between points, the lit road draws itself, the next
+ * point pings, events slide into the feed, confetti and the start countdown.
+ */
+.track-token {
+  transition: transform 0.9s cubic-bezier(0.45, -0.25, 0.3, 1.35);
+}
+@keyframes track-hop {
+  0% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-34px) scale(1.12); }
+  70% { transform: translateY(0) scale(0.94, 1.06); }
+  100% { transform: none; }
+}
+.track-hop {
+  animation: track-hop 0.9s ease-out;
+}
+@keyframes track-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+.track-draw {
+  stroke-dasharray: 1;
+  animation: track-draw 1s ease-out both;
+}
+@keyframes track-ping {
+  0% { opacity: 0.9; transform: scale(0.85); }
+  100% { opacity: 0; transform: scale(1.45); }
+}
+.track-ping {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: track-ping 1.6s ease-out infinite;
+}
+
+@keyframes feed-in {
+  from { opacity: 0; transform: translateX(-18px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.animate-feed-in {
+  animation: feed-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes live-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgb(224 22 43 / 0.6); }
+  50% { opacity: 0.5; box-shadow: 0 0 0 6px rgb(224 22 43 / 0); }
+}
+.live-dot {
+  animation: live-dot 1.4s ease-in-out infinite;
+}
+
+@keyframes toast-life {
+  0% { opacity: 0; transform: translateY(-20px) scale(0.9); }
+  8%, 85% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-10px); visibility: hidden; }
+}
+.animate-toast-life {
+  animation: toast-life 4.5s ease both;
+}
+
+@keyframes float-up {
+  0% { opacity: 0; transform: translateY(6px); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-26px); }
+}
+.animate-float-up {
+  animation: float-up 1.6s ease-out both;
+}
+
+@keyframes shake {
+  20%, 60% { transform: translateX(-7px); }
+  40%, 80% { transform: translateX(7px); }
+}
+.animate-shake {
+  animation: shake 0.45s ease-in-out;
+}
+
+@keyframes confetti-fall {
+  0% { transform: translate(0, -10vh) rotate(0); opacity: 1; }
+  100% { transform: translate(var(--drift), 105vh) rotate(var(--spin)); opacity: 0.9; }
+}
+.confetti-piece {
+  position: absolute;
+  top: 0;
+  border-radius: 2px;
+  animation-name: confetti-fall;
+  animation-timing-function: cubic-bezier(0.25, 0.6, 0.5, 1);
+  animation-fill-mode: both;
+}
+
+@keyframes go-overlay {
+  0%, 92% { background: rgb(11 16 38 / 0.72); }
+  100% { background: transparent; visibility: hidden; }
+}
+.go-overlay {
+  animation: go-overlay 3.4s ease both;
+}
+@keyframes go-num {
+  0% { opacity: 0; transform: scale(2.4); }
+  20% { opacity: 1; transform: scale(1); }
+  80% { opacity: 1; transform: scale(0.9); }
+  100% { opacity: 0; transform: scale(0.6); }
+}
+.go-num {
+  opacity: 0;
+  font-size: clamp(6rem, 28vh, 16rem);
+  text-shadow: 0 10px 50px rgb(224 22 43 / 0.8);
+  animation: go-num 0.8s ease both;
+}
+.go-num:last-child {
+  animation-duration: 1s;
+  background: linear-gradient(120deg, #ff3d57, #ffb547);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Last minute on the projector: the stage glows red */
+@keyframes urgent-glow {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgb(224 22 43 / 0); }
+  50% { box-shadow: inset 0 0 120px 10px rgb(224 22 43 / 0.45); }
+}
+.urgent-glow {
+  animation: urgent-glow 1.2s ease-in-out infinite;
+}
+
+@keyframes podium-rise {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+.podium-rise {
+  transform-origin: bottom;
+  animation: podium-rise 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
