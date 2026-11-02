@@ -6,9 +6,9 @@ import { useI18n } from "@/components/i18n/i18n-provider";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/field";
-import { signInAction, signUpAction } from "./actions";
+import { requestPasswordResetAction, signInAction, signUpAction } from "./actions";
 
-type Mode = "sign-in" | "sign-up";
+type Mode = "sign-in" | "sign-up" | "reset";
 
 export function LoginForm({ next, initialError }: { next: string; initialError?: string }) {
   const [mode, setMode] = useState<Mode>("sign-in");
@@ -26,10 +26,10 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
           <button
             key={value}
             type="button"
-            aria-pressed={mode === value}
+            aria-pressed={mode === value || (mode === "reset" && value === "sign-in")}
             onClick={() => setMode(value)}
             className={`min-h-11 rounded-xl text-sm font-bold transition ${
-              mode === value ? "bg-surface text-ink shadow-card" : "text-ink-muted hover:text-ink"
+              mode === value || (mode === "reset" && value === "sign-in") ? "bg-surface text-ink shadow-card" : "text-ink-muted hover:text-ink"
             }`}
           >
             {label}
@@ -40,12 +40,14 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
       {initialError && <Alert className="mt-6">{initialError}</Alert>}
 
       {/* Separate components keep each form's state apart when switching tabs. */}
-      {mode === "sign-in" ? <SignInForm next={next} /> : <SignUpForm next={next} />}
+      {mode === "sign-in" && <SignInForm next={next} onForgot={() => setMode("reset")} />}
+      {mode === "sign-up" && <SignUpForm next={next} />}
+      {mode === "reset" && <ResetRequestForm onBack={() => setMode("sign-in")} />}
     </div>
   );
 }
 
-function SignInForm({ next }: { next: string }) {
+function SignInForm({ next, onForgot }: { next: string; onForgot: () => void }) {
   const [state, formAction, pending] = useFormAction(signInAction);
   const { m } = useI18n();
   const [email, setEmail] = useState("");
@@ -79,10 +81,57 @@ function SignInForm({ next }: { next: string }) {
         disabled={locked}
         required
       />
+      <button type="button" onClick={onForgot} className="-mt-2 text-sm font-bold text-teal-strong underline">
+        {m.login.reset.link}
+      </button>
       {state.status === "error" && state.message && <Alert>{state.message}</Alert>}
       <Button type="submit" className="w-full" pending={locked} pendingLabel={pending ? m.login.signingIn : m.login.redirecting}>
         {m.login.submitSignIn}
       </Button>
+    </form>
+  );
+}
+
+/** "Forgot password": the e-mail with a link to /reset-password. */
+function ResetRequestForm({ onBack }: { onBack: () => void }) {
+  const [state, formAction, pending] = useFormAction(requestPasswordResetAction);
+  const { m } = useI18n();
+  const [email, setEmail] = useState("");
+  const back = (
+    <button type="button" onClick={onBack} className="text-sm font-bold text-teal-strong underline">
+      {m.login.reset.back}
+    </button>
+  );
+
+  if (state.status === "success") {
+    return (
+      <div className="mt-6 space-y-4">
+        <Alert tone="success">{state.message}</Alert>
+        {back}
+      </div>
+    );
+  }
+
+  return (
+    <form action={formAction} className="mt-6 space-y-5" noValidate>
+      <p className="text-ink-muted">{m.login.reset.lead}</p>
+      <TextField
+        id="reset-email"
+        name="email"
+        type="email"
+        label={m.login.email}
+        autoComplete="email"
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        error={fieldError(state, "email")}
+        disabled={pending}
+        required
+      />
+      {state.status === "error" && state.message && <Alert>{state.message}</Alert>}
+      <Button type="submit" className="w-full" pending={pending} pendingLabel={m.login.reset.sending}>
+        {m.login.reset.submit}
+      </Button>
+      {back}
     </form>
   );
 }

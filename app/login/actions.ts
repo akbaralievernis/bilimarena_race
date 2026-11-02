@@ -14,6 +14,15 @@ type AuthField = "name" | "email" | "password";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
 
+/** Address of this site for links in e-mails (confirmation, password reset). */
+async function requestOrigin() {
+  const requestHeaders = await headers();
+  return (
+    requestHeaders.get("origin") ??
+    `${requestHeaders.get("x-forwarded-proto") ?? "http"}://${requestHeaders.get("host")}`
+  );
+}
+
 function readCredentials(formData: FormData) {
   return {
     email: String(formData.get("email") ?? "").trim().toLowerCase(),
@@ -53,11 +62,7 @@ export async function signUpAction(formData: FormData): Promise<ActionResult<Aut
   }
   if (Object.keys(fieldErrors).length > 0) return { ok: false, fieldErrors };
 
-  const requestHeaders = await headers();
-  const origin =
-    requestHeaders.get("origin") ??
-    `${requestHeaders.get("x-forwarded-proto") ?? "http"}://${requestHeaders.get("host")}`;
-
+  const origin = await requestOrigin();
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -77,4 +82,29 @@ export async function signUpAction(formData: FormData): Promise<ActionResult<Aut
     };
   }
   return { ok: true, redirectTo: next };
+}
+
+/**
+ * "Forgot password": Supabase e-mails a link that signs the teacher in and opens
+ * /reset-password. The answer is the same whether or not the address has an
+ * account, so the form cannot be used to find out who is registered.
+ */
+export async function requestPasswordResetAction(formData: FormData): Promise<ActionResult<"email">> {
+  const { m } = await getI18n();
+  if (!isSupabaseConfigured()) return { ok: false, message: m.errors.setupRequired };
+
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!EMAIL_PATTERN.test(email)) return { ok: false, fieldErrors: { email: m.login.errors.emailInvalid } };
+
+  const origin = await requestOrigin();
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/confirm?next=${encodeURIComponent("/reset-password")}`,
+  });
+  if (error) {
+    // Only errors the teacher can act on (no connection, too many e-mails); the rest look like success.
+    const message = authErrorMessage(error, m);
+    if (message !== m.errors.unknown) return { ok: false, message };
+  }
+  return { ok: true, message: m.login.reset.sent(email) };
 }

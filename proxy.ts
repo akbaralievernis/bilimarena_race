@@ -38,5 +38,5 @@ export async function proxy(request: NextRequest) {
 
 // Routes that use the auth session, plus the pages the main site links to.
 export const config = {
-  matcher: ["/", "/status", "/login", "/create", "/join", "/race/:path*", "/auth/:path*"],
+  matcher: ["/", "/status", "/login", "/reset-password", "/create", "/join", "/race/:path*", "/auth/:path*"],
 };
